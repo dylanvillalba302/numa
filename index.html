@@ -1427,6 +1427,7 @@ function abrirAjustes(){
       <div class="lbl2">Atajo de Siri</div>
       <div class="card" style="margin:0">
         <div style="font-size:14px;color:var(--muted)">Decí “Oye Siri, anotar” y después “gasté 3500 en el súper”. Al instalarlo, Atajos te pide tu clave: ya queda copiada, mantené apretado el campo y elegí <b>Pegar</b>.</div>
+        <div style="font-size:12.5px;color:var(--muted);margin-top:8px">Hacelo desde <b>Safari</b>. Si aparece “¿Descargar?”, tocá <b>Descargar</b>, después la flecha azul de descargas y el archivo: se abre Atajos.</div>
         <button class="primary" data-act="atajo" data-f="Anotar.shortcut">Instalar atajo “Anotar”</button>
         <button class="ghost" data-act="atajo" data-f="Sincronizar Numa.shortcut">Instalar “Sincronizar Numa” (opcional)</button>
         <div class="lbl2" style="margin-top:18px">Centro de control</div>
@@ -1468,14 +1469,15 @@ function abrirAjustes(){
   });
 }
 
-async function instalarAtajo(archivo){
+function instalarAtajo(archivo){
   const k = D.perfil?.clave_atajo;
   if (!k) { toast('Sincronizá primero para obtener tu clave'); return; }
-  const copiado = await copiar(k);
-  try { const r = await fetch(encodeURI(archivo), {method:'HEAD', cache:'no-store'}); if (!r.ok) throw 0; }
-  catch(e) { toast('Los atajos todavía no están publicados'); return; }
-  toast(copiado ? '✓ Clave copiada · abriendo Atajos…' : 'Abriendo Atajos…');
-  setTimeout(() => { location.href = encodeURI(archivo); }, 700);
+  // Todo en el mismo toque (si se espera, el iPhone bloquea la descarga)
+  copiar(k).then(ok => toast(ok ? '✓ Clave copiada · tocá Descargar' : 'Tocá Descargar'));
+  const a = document.createElement('a');
+  a.href = new URL(encodeURI(archivo), location.href).href;
+  a.target = '_blank'; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
 }
 
 /* =====================================================================
