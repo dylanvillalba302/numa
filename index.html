@@ -1474,10 +1474,10 @@ function instalarAtajo(archivo){
   if (!k) { toast('Sincronizá primero para obtener tu clave'); return; }
   // Todo en el mismo toque (si se espera, el iPhone bloquea la descarga)
   copiar(k).then(ok => toast(ok ? '✓ Clave copiada · tocá Descargar' : 'Tocá Descargar'));
-  const a = document.createElement('a');
-  a.href = new URL(encodeURI(archivo), location.href).href;
-  a.target = '_blank'; a.rel = 'noopener';
-  document.body.appendChild(a); a.click(); a.remove();
+  const url = new URL(encodeURI(archivo), location.href).href;
+  // Desde el ícono de inicio (app instalada) el iPhone no puede abrir atajos: lo mandamos a Safari
+  const instalada = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  location.href = (instalada && /iPhone|iPad|iPod/.test(navigator.userAgent)) ? 'x-safari-' + url : url;
 }
 
 /* =====================================================================
