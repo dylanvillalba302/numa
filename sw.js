@@ -1,6 +1,6 @@
 // Numa · guarda la app en el teléfono para que abra sin conexión.
 // Al publicar cambios, subí el número de versión para que los teléfonos se actualicen.
-const CACHE = 'numa-v2.0.8';
+const CACHE = 'numa-v2.1.0';
 const ARCHIVOS = ['./', './index.html', './config.js', './lib/supabase.js', './lib/591.supabase.js',
   './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './privacidad.html'];
 

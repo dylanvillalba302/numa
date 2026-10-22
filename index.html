@@ -309,6 +309,10 @@ body.menu-open{overflow:hidden}
 .sheet-x{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;background:var(--card2);display:grid;place-items:center;color:var(--muted);z-index:2}
 .sheet-x svg.i{width:18px;height:18px}
 .sheet h2{padding-right:44px}
+.amount .mon{font-size:30px;font-weight:700;color:var(--muted);padding:0 4px;border-radius:10px;border-bottom:2px dashed var(--faint)}
+.amount .mon.usd{color:var(--ing);font-size:24px}
+.eq{display:block;font-size:11.5px;color:var(--muted);font-weight:600;text-align:right;margin-top:1px}
+.wallet .eq{text-align:left}
 /* Guía para instalar atajos */
 .guia{display:flex;flex-direction:column;gap:14px;margin:14px 0 6px}
 .gp{display:flex;gap:12px;align-items:flex-start}
@@ -461,6 +465,7 @@ const ICONS = {
   buscar:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
   atras:'<path d="m15 18-6-6 6-6"/>',
   mas:'<path d="M12 5v14M5 12h14"/>',
+  dolar:'<path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
   cerrar:'<path d="M18 6 6 18M6 6l12 12"/>',
   calendario:'<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
   abajo:'<path d="m7 7 10 10"/><path d="M17 7v10H7"/>',
@@ -506,6 +511,34 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const nf = new Intl.NumberFormat('es-AR', {style:'currency', currency:'ARS', minimumFractionDigits:0, maximumFractionDigits:2});
 const money = n => nf.format(Math.round((n||0)*100)/100);
 const signed = (n, tipo) => (tipo === 'Ingreso' ? '+' : '−') + money(n);
+/* ---------- Dólares: cada movimiento puede ser en $ o en US$; los totales se ven en pesos ---------- */
+const nfUSD = new Intl.NumberFormat('es-AR', {minimumFractionDigits:0, maximumFractionDigits:2});
+const plataUSD = n => 'US$ ' + nfUSD.format(Math.round((n||0)*100)/100);
+const DOLAR_TIPOS = [['blue', 'Blue'], ['oficial', 'Oficial'], ['bolsa', 'MEP']];
+let DOLAR = LS.get('numa_dolar', null);            // {tipo, venta, compra, fecha}
+const tipoDolar = () => LS.get('numa_dolar_tipo', 'blue');
+const cotiz = () => (DOLAR && DOLAR.venta) || 0;
+const esUSD = m => m && m.moneda === 'USD';
+const ars = m => esUSD(m) ? Number(m.monto) * cotiz() : Number(m.monto);
+const montoTxt = m => esUSD(m) ? plataUSD(Number(m.monto)) : money(Number(m.monto));
+const signedM = m => (m.tipo === 'Ingreso' ? '+' : '−') + montoTxt(m);
+let dolarPedido = 0;
+async function actualizarDolar(forzar){
+  if (!forzar && Date.now() - dolarPedido < 20 * 60 * 1000 && DOLAR && DOLAR.tipo === tipoDolar()) return;
+  dolarPedido = Date.now();
+  try {
+    const t = tipoDolar();
+    const r = await fetch('https://dolarapi.com/v1/dolares/' + t, {cache: 'no-store'});
+    if (!r.ok) return;
+    const j = await r.json();
+    if (j && j.venta) {
+      const cambio = !DOLAR || DOLAR.venta !== Number(j.venta) || DOLAR.tipo !== t;
+      DOLAR = {tipo: t, venta: Number(j.venta), compra: Number(j.compra), fecha: j.fechaActualizacion || new Date().toISOString()};
+      LS.set('numa_dolar', DOLAR);
+      if (cambio && (modo === 'app' || modo === 'demo') && !document.body.classList.contains('sheet-open')) render();
+    }
+  } catch (e) {}
+}
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 const primerDia = d => new Date(d.getFullYear(), d.getMonth(), 1);
 const uid = () => 'app-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
@@ -599,6 +632,7 @@ function interpretarFrase(texto, categorias){
   }
   if (mejor) out.monto = Math.round(mejor.n * 100) / 100;
 
+  out.moneda = /(^|\s)(usd|u\$s|us\$|u\$d|dolar|dolares|dolarcitos|verdes?)(\s|$)/.test(s) ? 'USD' : 'ARS';
   out.medio = /\b(transf\w*|mp|mercado ?pago|banco|debito|tarjeta|cvu|cbu|alias|qr|uala|brubank|naranja x)\b/.test(s) ? 'Transferencia' : 'Efectivo';
 
   const propias = categorias.filter(c => c.tipo === out.tipo);
@@ -648,8 +682,11 @@ function movimientos(){
     .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 }
 function saldos(){
-  const s = {Efectivo: 0, Transferencia: 0};
-  movimientos().forEach(m => { s[m.medio] = (s[m.medio] || 0) + (m.tipo === 'Ingreso' ? 1 : -1) * Number(m.monto); });
+  const s = {Efectivo: 0, Transferencia: 0, USD: 0, hayUSD: false};
+  movimientos().forEach(m => {
+    const v = (m.tipo === 'Ingreso' ? 1 : -1) * Number(m.monto);
+    if (esUSD(m)) { s.USD += v; s.hayUSD = true; } else s[m.medio] = (s[m.medio] || 0) + v;
+  });
   return s;
 }
 
@@ -681,7 +718,7 @@ function generarFijos(){
       const nCuota = (f.cuotas_pagadas || 0) + 1;
       if (!existe) {
         D.queue.push({op: 'add', item: {id, fecha: fecha.toISOString(), tipo: f.tipo, monto: f.monto, categoria: f.categoria,
-          medio: f.medio, nota: cuotas ? `${f.nombre} · cuota ${nCuota} de ${cuotas}` : f.nombre, origen: 'App'}});
+          medio: f.medio, moneda: f.moneda || 'ARS', nota: cuotas ? `${f.nombre} · cuota ${nCuota} de ${cuotas}` : f.nombre, origen: 'App'}});
         creados++;
       }
       if (cuotas) { f.cuotas_pagadas = nCuota; if (nCuota >= cuotas) f.activo = false; }
@@ -707,7 +744,7 @@ async function sincronizar(manual){
     const enviados = D.queue.slice();
     const adds = enviados.filter(o => o.op === 'add').map(o => {
       const m = o.item;
-      return {id: m.id, fecha: m.fecha, tipo: m.tipo, monto: m.monto, categoria: m.categoria, medio: m.medio, nota: m.nota || '', origen: m.origen || 'App'};
+      return {id: m.id, fecha: m.fecha, tipo: m.tipo, monto: m.monto, moneda: m.moneda === 'USD' ? 'USD' : 'ARS', categoria: m.categoria, medio: m.medio, nota: m.nota || '', origen: m.origen || 'App'};
     });
     if (adds.length) {
       const {error} = await sb.from('movimientos').upsert(adds, {onConflict: 'user_id,id', ignoreDuplicates: true});
@@ -722,7 +759,7 @@ async function sincronizar(manual){
       const f = o.item;
       return {id: f.id, nombre: f.nombre, tipo: f.tipo, monto: f.monto, categoria: f.categoria, medio: f.medio,
         dia: f.dia, activo: f.activo !== false, ultimo_mes: f.ultimo_mes || '',
-        cuotas: Number(f.cuotas) || null, cuotas_pagadas: Number(f.cuotas_pagadas) || 0};
+        cuotas: Number(f.cuotas) || null, cuotas_pagadas: Number(f.cuotas_pagadas) || 0, moneda: f.moneda === 'USD' ? 'USD' : 'ARS'};
     });
     if (fu.length) {
       const {error} = await sb.from('fijos').upsert(fu, {onConflict: 'user_id,id'});
@@ -753,7 +790,7 @@ async function sincronizar(manual){
       const nuevos = [], sinMonto = [];
       ent.data.forEach(e => {
         const r = interpretarFrase(e.texto, cats());
-        if (r.monto > 0) nuevos.push({id: e.id, fecha: e.fecha, tipo: r.tipo, monto: r.monto, categoria: r.categoria, medio: r.medio, nota: e.texto, origen: 'Atajo'});
+        if (r.monto > 0) nuevos.push({id: e.id, fecha: e.fecha, tipo: r.tipo, monto: r.monto, moneda: r.moneda, categoria: r.categoria, medio: r.medio, nota: e.texto, origen: 'Atajo'});
         else sinMonto.push({id: e.id, texto: e.texto, fecha: e.fecha});
       });
       if (nuevos.length) {
@@ -771,13 +808,13 @@ async function sincronizar(manual){
     const todos = [];
     for (let desde = 0; ; desde += 1000) {
       const {data, error} = await sb.from('movimientos')
-        .select('id, fecha, tipo, monto, categoria, medio, nota, origen').order('fecha', {ascending: false}).range(desde, desde + 999);
+        .select('id, fecha, tipo, monto, moneda, categoria, medio, nota, origen').order('fecha', {ascending: false}).range(desde, desde + 999);
       if (error) throw error;
       todos.push(...data.map(m => ({...m, monto: Number(m.monto)})));
       if (data.length < 1000) break;
     }
     D.movimientos = todos;
-    const fj = await sb.from('fijos').select('id, nombre, tipo, monto, categoria, medio, dia, activo, ultimo_mes, cuotas, cuotas_pagadas');
+    const fj = await sb.from('fijos').select('id, nombre, tipo, monto, categoria, medio, dia, activo, ultimo_mes, cuotas, cuotas_pagadas, moneda');
     if (fj.error) throw fj.error;
     const pendientes = new Set(D.queue.filter(o => o.op === 'fijo' || o.op === 'fijodel').map(o => o.item ? o.item.id : o.id));
     D.fijos = fj.data.map(f => ({...f, monto: Number(f.monto)})).filter(f => !pendientes.has(f.id))
@@ -975,7 +1012,7 @@ function plataCorta(n){
 function graficoMensual(todos){
   const hoy = primerDia(new Date()), meses = [];
   for (let i = 5; i >= 0; i--) meses.push(new Date(hoy.getFullYear(), hoy.getMonth() - i, 1));
-  const vals = meses.map(m => todos.filter(x => x.tipo === 'Gasto' && mismoMes(new Date(x.fecha), m)).reduce((a, x) => a + Number(x.monto), 0));
+  const vals = meses.map(m => todos.filter(x => x.tipo === 'Gasto' && mismoMes(new Date(x.fecha), m)).reduce((a, x) => a + ars(x), 0));
   const conDatos = vals.filter(v => v > 0);
   const prom = conDatos.length ? conDatos.reduce((a, b) => a + b, 0) / conDatos.length : 0;
   const max = Math.max(...vals, prom, 1);
@@ -1054,7 +1091,7 @@ function renderPanel(){
   const todos = movimientos();
   const delMes = todos.filter(m => mismoMes(new Date(m.fecha), ui.mes));
   let ing = 0, gas = 0;
-  delMes.forEach(m => m.tipo === 'Ingreso' ? ing += Number(m.monto) : gas += Number(m.monto));
+  delMes.forEach(m => m.tipo === 'Ingreso' ? ing += ars(m) : gas += ars(m));
   const bal = ing - gas, s = saldos();
   const esMesActual = mismoMes(ui.mes, new Date());
   const pct = ing > 0 ? Math.min(100, gas / ing * 100) : (gas > 0 ? 100 : 0);
@@ -1062,7 +1099,7 @@ function renderPanel(){
     : (gas > 0 ? 'Todavía no registraste ingresos este mes' : 'Sin movimientos este mes');
 
   const porCat = {};
-  delMes.filter(m => m.tipo === ui.catTipo).forEach(m => porCat[m.categoria] = (porCat[m.categoria] || 0) + Number(m.monto));
+  delMes.filter(m => m.tipo === ui.catTipo).forEach(m => porCat[m.categoria] = (porCat[m.categoria] || 0) + ars(m));
   const arr = Object.entries(porCat).sort((a, b) => b[1] - a[1]);
   const tot = arr.reduce((a, b) => a + b[1], 0), max = arr.length ? arr[0][1] : 1;
   const catsHtml = arr.length ? arr.map(([nombre, v], idx) => { const ci = catIco(nombre, ui.catTipo); return `
@@ -1077,7 +1114,7 @@ function renderPanel(){
     const d = new Date(m.fecha), k = d.toDateString();
     let g = grupos[grupos.length - 1];
     if (!g || g.k !== k) { g = {k, d, items:[], neto:0}; grupos.push(g); }
-    g.items.push(m); g.neto += (m.tipo === 'Ingreso' ? 1 : -1) * Number(m.monto);
+    g.items.push(m); g.neto += (m.tipo === 'Ingreso' ? 1 : -1) * ars(m);
   });
   const listaHtml = grupos.length ? grupos.map(g => `
       <div class="day"><span>${esc(etiquetaDia(g.d))}</span><span class="num">${g.neto >= 0 ? '+' : '−'}${money(Math.abs(g.neto))}</span></div>
@@ -1109,7 +1146,11 @@ function renderPanel(){
     </div>
     <div class="card t-disp"><h3>Disponible</h3>
       <div class="wallets">${MEDIOS.map(([m, ic]) => `<div class="wallet"><span class="ic">${ico(ic)}</span><div><small>${m}</small>
-        <b class="num ${s[m] < 0 ? 'neg' : ''}" data-cuenta="${s[m] || 0}">${s[m] < 0 ? '−' : ''}${money(Math.abs(s[m] || 0))}</b></div></div>`).join('')}</div>
+        <b class="num ${s[m] < 0 ? 'neg' : ''}" data-cuenta="${s[m] || 0}">${s[m] < 0 ? '−' : ''}${money(Math.abs(s[m] || 0))}</b></div></div>`).join('')}
+        ${s.hayUSD ? `<div class="wallet"><span class="ic">${ico('dolar')}</span><div><small>Dólares</small>
+          <b class="num ${s.USD < 0 ? 'neg' : ''}">${s.USD < 0 ? '−' : ''}${plataUSD(Math.abs(s.USD))}</b>
+          ${cotiz() ? `<small class="eq">≈ ${s.USD < 0 ? '−' : ''}${money(Math.abs(s.USD) * cotiz())}</small>` : ''}</div></div>` : ''}</div>
+      ${s.hayUSD && cotiz() ? `<p class="cnote">Dólar ${esc((DOLAR_TIPOS.find(t => t[0] === tipoDolar()) || [,''])[1].toLowerCase())}: ${money(cotiz())} · los totales en US$ se cuentan en pesos a ese valor.</p>` : ''}
     </div>
     <div class="card t-cat"><h3>Por categoría
         <span class="seg"><button class="${ui.catTipo === 'Gasto' ? 'on' : ''}" data-act="cattipo" data-t="Gasto">Gastos</button><button class="${ui.catTipo === 'Ingreso' ? 'on' : ''}" data-act="cattipo" data-t="Ingreso">Ingresos</button></span></h3>
@@ -1177,13 +1218,13 @@ function pintarListaMovs(){
     (ui.movFiltro === 'Todos' || (ui.movFiltro === 'Ingresos' ? m.tipo === 'Ingreso' : m.tipo === 'Gasto')) &&
     (!q || sinAcentos(`${m.nota} ${m.categoria} ${m.medio}`.toLowerCase()).includes(q)));
   let ing = 0, gas = 0;
-  lista.forEach(m => m.tipo === 'Ingreso' ? ing += Number(m.monto) : gas += Number(m.monto));
+  lista.forEach(m => m.tipo === 'Ingreso' ? ing += ars(m) : gas += ars(m));
   const grupos = [];
   lista.forEach(m => {
     const d = new Date(m.fecha), k = mesClave(d);
     let g = grupos[grupos.length - 1];
     if (!g || g.k !== k) { g = {k, d, items: [], neto: 0}; grupos.push(g); }
-    g.items.push(m); g.neto += (m.tipo === 'Ingreso' ? 1 : -1) * Number(m.monto);
+    g.items.push(m); g.neto += (m.tipo === 'Ingreso' ? 1 : -1) * ars(m);
   });
   $('#mLista').innerHTML = `
     <div class="card resumen"><div><small>${lista.length} movimiento${lista.length === 1 ? '' : 's'}</small></div>
@@ -1201,9 +1242,9 @@ function renderFijos(){
   const pagados = todos.filter(f => f.activo === false && Number(f.cuotas) > 0);
   const ing = fijos.filter(f => f.tipo === 'Ingreso'), gas = fijos.filter(f => f.tipo === 'Gasto' && !Number(f.cuotas));
   const pres = fijos.filter(f => f.tipo === 'Gasto' && Number(f.cuotas) > 0);
-  const tP = pres.reduce((a, f) => a + Number(f.monto), 0);
-  const deuda = pres.reduce((a, f) => a + Number(f.monto) * (Number(f.cuotas) - (f.cuotas_pagadas || 0)), 0);
-  const tI = ing.reduce((a, f) => a + Number(f.monto), 0), tG = gas.reduce((a, f) => a + Number(f.monto), 0) + tP;
+  const tP = pres.reduce((a, f) => a + ars(f), 0);
+  const deuda = pres.reduce((a, f) => a + ars(f) * (Number(f.cuotas) - (f.cuotas_pagadas || 0)), 0);
+  const tI = ing.reduce((a, f) => a + ars(f), 0), tG = gas.reduce((a, f) => a + ars(f), 0) + tP;
   const hoy = new Date().getDate();
   const fila = f => {
     const ci = catIco(f.categoria, f.tipo);
@@ -1211,18 +1252,18 @@ function renderFijos(){
     return `<button class="row" data-act="fijover" data-id="${esc(f.id)}">
       <span class="ic tint" style="--c:${ci.color}">${ci.svg}</span>
       <span style="min-width:0"><b>${esc(f.nombre)}</b><small>Todos los meses el día ${f.dia} · ${esc(f.medio)} · próximo ${prox}</small></span>
-      <span class="amt num ${f.tipo === 'Ingreso' ? 'pos' : ''}">${signed(Number(f.monto), f.tipo)}</span></button>`;
+      <span class="amt num ${f.tipo === 'Ingreso' ? 'pos' : ''}">${signedM(f)}</span></button>`;
   };
   const filaPrestamo = f => {
     const ci = catIco(f.categoria, f.tipo);
     const total = Number(f.cuotas), hechas = Math.min(total, f.cuotas_pagadas || 0), faltan = total - hechas;
     const sub = f.activo === false ? `Terminado · ${total} cuotas pagadas` :
-      `Cuota ${hechas} de ${total} · faltan ${money(Number(f.monto) * faltan)} · el día ${f.dia}`;
+      `Cuota ${hechas} de ${total} · faltan ${esUSD(f) ? plataUSD(Number(f.monto) * faltan) : money(Number(f.monto) * faltan)} · el día ${f.dia}`;
     return `<button class="row" data-act="fijover" data-id="${esc(f.id)}">
       <span class="ic tint" style="--c:${ci.color}">${ci.svg}</span>
       <span style="min-width:0"><b>${esc(f.nombre)}</b><small>${sub}</small>
         <span class="cuotabar"><i style="width:${Math.round(hechas / total * 100)}%"></i></span></span>
-      <span class="amt num">${f.activo === false ? '✓' : signed(Number(f.monto), f.tipo)}</span></button>`;
+      <span class="amt num">${f.activo === false ? '✓' : signedM(f)}</span></button>`;
   };
   $('#main').innerHTML = `
     ${encabezadoVista('Fijos', 'Se cargan solos cada mes, el día que elijas')}
@@ -1250,13 +1291,13 @@ function renderFijos(){
 function abrirFormFijo(pre){
   pre = pre || {};
   const st = {tipo: pre.tipo || 'Gasto', medio: pre.medio || 'Transferencia', cat: pre.categoria || null,
-    prestamo: Number(pre.cuotas) > 0 || !!pre.prestamo, cuotas: Number(pre.cuotas) || 12, pagadas: Number(pre.cuotas_pagadas) || 0};
+    prestamo: Number(pre.cuotas) > 0 || !!pre.prestamo, moneda: pre.moneda || 'ARS', cuotas: Number(pre.cuotas) || 12, pagadas: Number(pre.cuotas_pagadas) || 0};
   if (st.prestamo && !st.cat) st.cat = 'Préstamos';
   const hoyDia = new Date().getDate();
   const s = abrirSheet(`
     <h2>${pre.id ? (st.prestamo ? 'Editar préstamo' : 'Editar fijo') : (st.prestamo ? 'Nuevo préstamo' : 'Nuevo fijo')}</h2>
     <div class="seg big" id="xTipo"><button data-t="Gasto">Gasto fijo</button><button data-t="Ingreso">Ingreso fijo</button></div>
-    <label class="amount"><span>$</span><input id="xMonto" inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Monto"></label>
+    <label class="amount"><button type="button" class="mon" id="xMon" data-mon="1" aria-label="Cambiar moneda">$</button><input id="xMonto" inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Monto"></label>
     <div class="hint" id="xHint">&nbsp;</div>
     <input class="field" id="xNombre" placeholder="${st.prestamo ? 'Nombre (ej: Préstamo banco)' : 'Nombre (ej: Alquiler, Netflix, Sueldo)'}" maxlength="40" autocomplete="off" value="${esc(pre.nombre || '')}">
     <label class="check" id="xPresWrap" style="justify-content:flex-start;margin:14px 2px 0"><input type="checkbox" id="xPres" ${st.prestamo ? 'checked' : ''}> Es un préstamo o una compra en cuotas</label>
@@ -1291,13 +1332,14 @@ function abrirFormFijo(pre){
     $('#xCats', s).innerHTML = lista.map(c =>
       `<button type="button" class="chip ${c.nombre === st.cat ? 'on' : ''}" data-cat="${esc(c.nombre)}" style="--c:${estiloCat(c.nombre, c.icono).color}">${ico(estiloCat(c.nombre, c.icono).icono)}${esc(c.nombre)}</button>`).join('');
     $('#xDia', s).textContent = dia;
+    $('#xMon', s).textContent = st.moneda === 'USD' ? 'US$' : '$'; $('#xMon', s).classList.toggle('usd', st.moneda === 'USD');
     const pres = st.prestamo && st.tipo === 'Gasto';
     $('#xPresWrap', s).hidden = st.tipo !== 'Gasto';
     $('#xCuotas', s).hidden = !pres;
     st.pagadas = Math.min(st.pagadas, st.cuotas - 1);
     $('#xQ', s).textContent = st.cuotas; $('#xP', s).textContent = st.pagadas;
     const nm = parseFloat(monto.value.replace(/\./g, '').replace(',', '.')) || 0;
-    $('#xResumen', s).textContent = `Te faltan ${st.cuotas - st.pagadas} cuotas` + (nm ? ` · ${money(nm * (st.cuotas - st.pagadas))} en total` : '') + '. Cuando pagues la última, deja de cargarse sola.';
+    $('#xResumen', s).textContent = `Te faltan ${st.cuotas - st.pagadas} cuotas` + (nm ? ` · ${st.moneda === 'USD' ? plataUSD(nm * (st.cuotas - st.pagadas)) : money(nm * (st.cuotas - st.pagadas))} en total` : '') + '. Cuando pagues la última, deja de cargarse sola.';
     const w = $('#xEsteWrap', s); if (w) w.hidden = dia > new Date().getDate();
     $('#xGuardar', s).textContent = pre.id ? 'Guardar cambios' : (pres ? 'Guardar préstamo' : st.tipo === 'Gasto' ? 'Guardar gasto fijo' : 'Guardar ingreso fijo');
   };
@@ -1308,6 +1350,7 @@ function abrirFormFijo(pre){
     else if (b.dataset.m) { st.medio = b.dataset.m; pintar(); }
     else if (b.dataset.cat !== undefined) { st.cat = b.dataset.cat; pintar(); }
     else if (b.dataset.d) { dia = Math.min(31, Math.max(1, dia + Number(b.dataset.d))); pintar(); }
+    else if (b.dataset.mon) { st.moneda = st.moneda === 'USD' ? 'ARS' : 'USD'; pintar(); }
     else if (b.dataset.q) { st.cuotas = Math.min(120, Math.max(2, st.cuotas + Number(b.dataset.q))); pintar(); }
     else if (b.dataset.p) { st.pagadas = Math.min(st.cuotas - 1, Math.max(0, st.pagadas + Number(b.dataset.p))); pintar(); }
     else if (b.id === 'xGuardar') guardarFijo();
@@ -1335,7 +1378,7 @@ function abrirFormFijo(pre){
     const hoy = new Date();
     const este = $('#xEste', s);
     const desdeEste = !este || este.checked || dia > hoy.getDate();
-    const f = {id: pre.id || 'fx-' + uid().slice(4), nombre, tipo: st.tipo, monto: Math.round(n * 100) / 100, categoria: st.cat, medio: st.medio, dia, activo: true,
+    const f = {id: pre.id || 'fx-' + uid().slice(4), nombre, tipo: st.tipo, monto: Math.round(n * 100) / 100, moneda: st.moneda, categoria: st.cat, medio: st.medio, dia, activo: true,
       ultimo_mes: pre.id ? pre.ultimo_mes : mesClave(new Date(hoy.getFullYear(), hoy.getMonth() - (desdeEste ? 1 : 0), 1))};
     if (st.prestamo && st.tipo === 'Gasto') { f.cuotas = st.cuotas; f.cuotas_pagadas = st.pagadas; f.activo = st.pagadas < st.cuotas; }
     else { f.cuotas = null; f.cuotas_pagadas = 0; }
@@ -1364,7 +1407,7 @@ function filaHtml(m, conFecha){
       <span class="ic tint" style="--c:${catIco(m.categoria, m.tipo).color}">${catIco(m.categoria, m.tipo).svg}
         ${m.pendiente ? '<span class="p"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round"><path d="M12 7v5l3 2"/></svg></span>' : ''}</span>
       <span style="min-width:0"><b>${esc(m.categoria)}</b><small>${sub}</small></span>
-      <span class="amt num ${m.tipo === 'Ingreso' ? 'pos' : ''}">${signed(Number(m.monto), m.tipo)}</span></button>`;
+      <span class="amt num ${m.tipo === 'Ingreso' ? 'pos' : ''}">${signedM(m)}${esUSD(m) && cotiz() ? `<small class="eq">≈ ${money(ars(m))}</small>` : ''}</span></button>`;
 }
 
 /* =====================================================================
@@ -1400,10 +1443,10 @@ function cerrarSheet(){ document.body.classList.remove('sheet-open'); document.a
 
 function abrirForm(tipo, pre){
   pre = pre || {};
-  const st = {tipo: pre.tipo || tipo, medio: pre.medio || LS.get('numa_medio', 'Efectivo'), cat: pre.categoria || null};
+  const st = {tipo: pre.tipo || tipo, medio: pre.medio || LS.get('numa_medio', 'Efectivo'), cat: pre.categoria || null, moneda: pre.moneda || 'ARS'};
   const s = abrirSheet(`
     <div class="seg big" id="fTipo"><button data-t="Gasto">Gasto</button><button data-t="Ingreso">Ingreso</button></div>
-    <label class="amount"><span>$</span><input id="fMonto" inputmode="decimal" autocomplete="off" placeholder="0" enterkeyhint="done" aria-label="Monto"></label>
+    <label class="amount"><button type="button" class="mon" id="fMon" data-mon="1" aria-label="Cambiar moneda">$</button><input id="fMonto" inputmode="decimal" autocomplete="off" placeholder="0" enterkeyhint="done" aria-label="Monto"></label>
     <div class="hint" id="fHint">&nbsp;</div>
     <div class="lbl2">Categoría</div><div class="chips" id="fCats"></div>
     <div class="lbl2">Medio</div>
@@ -1427,6 +1470,8 @@ function abrirForm(tipo, pre){
     $('#fCats', s).innerHTML = lista.map(c =>
       `<button type="button" class="chip ${c.nombre === st.cat ? 'on' : ''}" data-cat="${esc(c.nombre)}" style="--c:${estiloCat(c.nombre, c.icono).color}">${ico(estiloCat(c.nombre, c.icono).icono)}${esc(c.nombre)}</button>`).join('');
     $('#fGuardar', s).textContent = st.tipo === 'Gasto' ? 'Guardar gasto' : 'Guardar ingreso';
+    $('#fMon', s).textContent = st.moneda === 'USD' ? 'US$' : '$';
+    $('#fMon', s).classList.toggle('usd', st.moneda === 'USD');
   };
   pintar(); ancho();
 
@@ -1434,6 +1479,7 @@ function abrirForm(tipo, pre){
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.t) { st.tipo = b.dataset.t; pintar(); }
     else if (b.dataset.m) { st.medio = b.dataset.m; LS.set('numa_medio', st.medio); pintar(); }
+    else if (b.dataset.mon) { st.moneda = st.moneda === 'USD' ? 'ARS' : 'USD'; pintar(); monto.focus(); }
     else if (b.dataset.cat !== undefined) { st.cat = b.dataset.cat; pintar(); }
     else if (b.id === 'fGuardar') guardarMovimiento();
   };
@@ -1458,7 +1504,7 @@ function abrirForm(tipo, pre){
     }
     const f = fecha.value ? new Date(fecha.value) : new Date();
     const item = {id: pre.id || uid(), fecha: (isNaN(f) ? new Date() : f).toISOString(), tipo: st.tipo,
-      monto: Math.round(n * 100) / 100, categoria: st.cat || 'Otros', medio: st.medio,
+      monto: Math.round(n * 100) / 100, moneda: st.moneda, categoria: st.cat || 'Otros', medio: st.medio,
       nota: $('#fNota', s).value.trim(), origen: pre.id ? 'Atajo' : 'App'};
     D.queue.push({op:'add', item});
     if (pre.id) D.revisar = D.revisar.filter(r => r.id !== pre.id);
@@ -1466,7 +1512,7 @@ function abrirForm(tipo, pre){
     guardar();
     ui.mes = primerDia(new Date(item.fecha));
     cerrarSheet(); render();
-    toast(modo === 'demo' || navigator.onLine ? `✓ ${st.tipo} de ${money(item.monto)} guardado` : '✓ Guardado sin conexión · se envía solo');
+    toast(modo === 'demo' || navigator.onLine ? `✓ ${st.tipo} de ${montoTxt(item)} guardado` : '✓ Guardado sin conexión · se envía solo');
     sincronizar();
   }
   if (!pre.monto) monto.focus();
@@ -1478,7 +1524,8 @@ function abrirDetalle(id){
   const s = abrirSheet(`
     <div class="detail">
       <div class="ic tint" style="--c:${catIco(m.categoria, m.tipo).color}">${catIco(m.categoria, m.tipo).svg}</div>
-      <div class="big num ${m.tipo === 'Ingreso' ? 'pos' : 'neg'}">${signed(Number(m.monto), m.tipo)}</div>
+      <div class="big num ${m.tipo === 'Ingreso' ? 'pos' : 'neg'}">${signedM(m)}</div>
+      ${esUSD(m) && cotiz() ? `<div style="color:var(--muted);margin-top:2px">≈ ${money(ars(m))} al dólar ${esc((DOLAR_TIPOS.find(t => t[0] === tipoDolar()) || [,''])[1].toLowerCase())}</div>` : ''}
       <div style="color:var(--muted);margin-top:4px">${esc(m.categoria)}</div>
     </div>
     <div class="card" style="padding:4px 16px">
@@ -1535,6 +1582,9 @@ function abrirAjustes(){
         <div class="btnrow"><button class="ghost" data-act="copiarclave">Copiar clave</button><button class="ghost" id="kNueva">Generar nueva</button></div>
       </div>`}
 
+    <div class="lbl2">Dólar para convertir</div>
+    <div class="seg big">${DOLAR_TIPOS.map(([v, t]) => `<button class="${tipoDolar() === v ? 'on' : ''}" data-act="dolartipo" data-t="${v}">${t}</button>`).join('')}</div>
+    <p class="msg" style="color:var(--muted)">${cotiz() ? `Hoy: ${money(cotiz())} (venta) · actualizado ${esc(new Date(DOLAR.fecha).toLocaleString('es-AR', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'}))}` : 'Se actualiza solo cuando hay internet.'} Tocá <b>$</b> al cargar un monto para pasarlo a US$.</p>
     <div class="lbl2">Apariencia</div>
     <div class="seg big">${[['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']].map(([v, t]) =>
       `<button class="${temaActual() === v ? 'on' : ''}" data-act="tema" data-t="${v}">${t}</button>`).join('')}</div>
@@ -1607,6 +1657,7 @@ document.addEventListener('click', e => {
   else if (a === 'ver') abrirDetalle(b.dataset.id);
   else if (a === 'ajustes') { cerrarMenu(); abrirAjustes(); }
   else if (a === 'menu') abrirMenu();
+  else if (a === 'dolartipo') { LS.set('numa_dolar_tipo', b.dataset.t); DOLAR = null; actualizarDolar(true).then(() => abrirAjustes()); abrirAjustes(); }
   else if (a === 'tema') { aplicarTema(b.dataset.t); abrirAjustes(); }
   else if (a === 'cerrarmenu') cerrarMenu();
   else if (a === 'vista') { ui.vista = b.dataset.v; cerrarMenu(); window.scrollTo(0, 0); render(); }
@@ -1634,7 +1685,8 @@ document.addEventListener('click', e => {
 
 window.addEventListener('online',  () => { renderEstado(); sincronizar(); });
 window.addEventListener('offline', () => { if (modo === 'app' || modo === 'demo') renderEstado(); });
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sincronizar(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { sincronizar(); actualizarDolar(); } });
+actualizarDolar();
 setInterval(() => { if (D.queue.length && navigator.onLine) sincronizar(); }, 20000);
 
 function abrirNuevaContrasena(){
