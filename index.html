@@ -304,6 +304,11 @@ body.menu-open{overflow:hidden}
   .month{justify-content:flex-start;gap:14px}
   .list .row:hover,.mi:hover{background:var(--card2)}
 }
+.cuotabar{display:block;height:4px;border-radius:9px;background:var(--card2);margin-top:7px;overflow:hidden}
+.cuotabar i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,#2563eb,#7dd3fc)}
+.sheet-x{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;background:var(--card2);display:grid;place-items:center;color:var(--muted);z-index:2}
+.sheet-x svg.i{width:18px;height:18px}
+.sheet h2{padding-right:44px}
 /* Guía para instalar atajos */
 .guia{display:flex;flex-direction:column;gap:14px;margin:14px 0 6px}
 .gp{display:flex;gap:12px;align-items:flex-start}
@@ -313,7 +318,7 @@ body.menu-open{overflow:hidden}
 .gp small{display:block;color:var(--muted);font-size:13px;margin-top:2px;line-height:1.4}
 .mock{display:flex;align-items:center;gap:10px;margin-top:8px;padding:9px 12px;border-radius:12px;background:var(--card);border:1px solid var(--line);font-size:13px;font-weight:600}
 .mock.col{flex-direction:column;align-items:stretch}
-.mock em{font-style:normal;margin-left:auto;color:#0a84ff;font-weight:700}
+.mock em{font-style:normal;margin-left:auto;color:#0a84ff;font-weight:700;white-space:nowrap}
 .mock.col em{margin:0;text-align:center;background:#0a84ff;color:#fff;border-radius:10px;padding:8px}
 .mock .dl{width:26px;height:26px;border-radius:50%;background:#0a84ff;color:#fff;display:grid;place-items:center}
 .mock .dl svg.i{width:15px;height:15px}
@@ -420,7 +425,7 @@ const VERSION = '2.0.0';
 const DEF_CATS = [
   ['Gasto','Supermercado','🛒'],['Gasto','Comida afuera','🍔'],['Gasto','Transporte','🚌'],['Gasto','Servicios','💡'],
   ['Gasto','Alquiler','🏠'],['Gasto','Salud','💊'],['Gasto','Salidas','🎉'],['Gasto','Ropa','👕'],['Gasto','Educación','📚'],
-  ['Gasto','Suscripciones','📺'],['Gasto','Regalos','🎁'],['Gasto','Otros','📦'],
+  ['Gasto','Suscripciones','📺'],['Gasto','Regalos','🎁'],['Gasto','Préstamos','🏦'],['Gasto','Otros','📦'],
   ['Ingreso','Sueldo','💼'],['Ingreso','Extra','💸'],['Ingreso','Ventas','🏷️'],['Ingreso','Reintegro','↩️'],['Ingreso','Regalo','🎁'],['Ingreso','Otros','📦']
 ].map(([tipo,nombre,icono]) => ({tipo,nombre,icono}));
 const MEDIOS = [['Efectivo','billete'],['Transferencia','banco']];
@@ -456,6 +461,7 @@ const ICONS = {
   buscar:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
   atras:'<path d="m15 18-6-6 6-6"/>',
   mas:'<path d="M12 5v14M5 12h14"/>',
+  cerrar:'<path d="M18 6 6 18M6 6l12 12"/>',
   calendario:'<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
   abajo:'<path d="m7 7 10 10"/><path d="M17 7v10H7"/>',
 };
@@ -467,7 +473,7 @@ const CAT_ESTILO = {
   // 12 colores bien distintos entre sí (verificados: ningún par se confunde a simple vista)
   'alquiler':['casa','#2563eb'], 'supermercado':['carrito','#16a34a'], 'comida afuera':['cubiertos','#f97316'],
   'transporte':['colectivo','#06b6d4'], 'servicios':['rayo','#facc15'], 'salud':['salud','#e11d48'], 'salidas':['copa','#f472b6'],
-  'ropa':['remera','#a78bfa'], 'educacion':['libro','#a16207'], 'suscripciones':['pantalla','#c026d3'], 'regalos':['regalo','#84cc16'],
+  'ropa':['remera','#a78bfa'], 'educacion':['libro','#a16207'], 'suscripciones':['pantalla','#c026d3'], 'regalos':['regalo','#84cc16'], 'prestamos':['banco','#0d9488'],
   'otros':['puntos','#64748b'],
   'sueldo':['maletin','#2563eb'], 'extra':['sube','#16a34a'], 'ventas':['etiqueta','#f97316'], 'reintegro':['vuelta','#06b6d4'], 'regalo':['regalo','#f472b6'],
 };
@@ -661,22 +667,27 @@ function generarFijos(){
   const hoy = new Date(), actual = mesClave(hoy);
   let creados = 0;
   (D.fijos || []).filter(f => f.activo !== false).forEach(f => {
+    const cuotas = Number(f.cuotas) || 0;
     const [y, m] = (f.ultimo_mes || mesClave(new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1))).split('-').map(Number);
     let d = new Date(y, m, 1);                       // el mes siguiente al último cargado
     let cambio = false;
     while (mesClave(d) <= actual) {
+      if (cuotas && (f.cuotas_pagadas || 0) >= cuotas) { f.activo = false; cambio = true; break; }
       const dias = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
       const fecha = new Date(d.getFullYear(), d.getMonth(), Math.min(f.dia, dias), 9, 0);
       if (fecha > hoy) break;
       const id = `fijo-${f.id}-${mesClave(d)}`;
       const existe = D.movimientos.some(x => x.id === id) || D.queue.some(o => o.op === 'add' && o.item.id === id);
+      const nCuota = (f.cuotas_pagadas || 0) + 1;
       if (!existe) {
         D.queue.push({op: 'add', item: {id, fecha: fecha.toISOString(), tipo: f.tipo, monto: f.monto, categoria: f.categoria,
-          medio: f.medio, nota: f.nombre, origen: 'App'}});
+          medio: f.medio, nota: cuotas ? `${f.nombre} · cuota ${nCuota} de ${cuotas}` : f.nombre, origen: 'App'}});
         creados++;
       }
+      if (cuotas) { f.cuotas_pagadas = nCuota; if (nCuota >= cuotas) f.activo = false; }
       f.ultimo_mes = mesClave(d); cambio = true;
       d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+      if (f.activo === false) break;
     }
     if (cambio) guardarFijoEnCola(f);
   });
@@ -710,7 +721,8 @@ async function sincronizar(manual){
     const fu = enviados.filter(o => o.op === 'fijo').map(o => {
       const f = o.item;
       return {id: f.id, nombre: f.nombre, tipo: f.tipo, monto: f.monto, categoria: f.categoria, medio: f.medio,
-        dia: f.dia, activo: f.activo !== false, ultimo_mes: f.ultimo_mes || ''};
+        dia: f.dia, activo: f.activo !== false, ultimo_mes: f.ultimo_mes || '',
+        cuotas: Number(f.cuotas) || null, cuotas_pagadas: Number(f.cuotas_pagadas) || 0};
     });
     if (fu.length) {
       const {error} = await sb.from('fijos').upsert(fu, {onConflict: 'user_id,id'});
@@ -765,7 +777,7 @@ async function sincronizar(manual){
       if (data.length < 1000) break;
     }
     D.movimientos = todos;
-    const fj = await sb.from('fijos').select('id, nombre, tipo, monto, categoria, medio, dia, activo, ultimo_mes');
+    const fj = await sb.from('fijos').select('id, nombre, tipo, monto, categoria, medio, dia, activo, ultimo_mes, cuotas, cuotas_pagadas');
     if (fj.error) throw fj.error;
     const pendientes = new Set(D.queue.filter(o => o.op === 'fijo' || o.op === 'fijodel').map(o => o.item ? o.item.id : o.id));
     D.fijos = fj.data.map(f => ({...f, monto: Number(f.monto)})).filter(f => !pendientes.has(f.id))
@@ -811,6 +823,7 @@ function iniciarDemo(){
       {id: 'f1', nombre: 'Sueldo', tipo: 'Ingreso', monto: 950000, categoria: 'Sueldo', medio: 'Transferencia', dia: 5, activo: true, ultimo_mes: mesAnt},
       {id: 'f2', nombre: 'Alquiler', tipo: 'Gasto', monto: 420000, categoria: 'Alquiler', medio: 'Transferencia', dia: 10, activo: true, ultimo_mes: mesAnt},
       {id: 'f3', nombre: 'Netflix', tipo: 'Gasto', monto: 9990, categoria: 'Suscripciones', medio: 'Transferencia', dia: 18, activo: true, ultimo_mes: mesAnt},
+      {id: 'f4', nombre: 'Préstamo banco', tipo: 'Gasto', monto: 85000, categoria: 'Préstamos', medio: 'Transferencia', dia: 20, activo: true, ultimo_mes: mesAnt, cuotas: 12, cuotas_pagadas: 4},
     ];
     guardar();
   }
@@ -1183,9 +1196,14 @@ function pintarListaMovs(){
 
 /* ---------- Fijos ---------- */
 function renderFijos(){
-  const fijos = (D.fijos || []).slice().sort((a, b) => a.dia - b.dia);
-  const ing = fijos.filter(f => f.tipo === 'Ingreso'), gas = fijos.filter(f => f.tipo === 'Gasto');
-  const tI = ing.reduce((a, f) => a + Number(f.monto), 0), tG = gas.reduce((a, f) => a + Number(f.monto), 0);
+  const todos = (D.fijos || []).slice().sort((a, b) => a.dia - b.dia);
+  const fijos = todos.filter(f => f.activo !== false);
+  const pagados = todos.filter(f => f.activo === false && Number(f.cuotas) > 0);
+  const ing = fijos.filter(f => f.tipo === 'Ingreso'), gas = fijos.filter(f => f.tipo === 'Gasto' && !Number(f.cuotas));
+  const pres = fijos.filter(f => f.tipo === 'Gasto' && Number(f.cuotas) > 0);
+  const tP = pres.reduce((a, f) => a + Number(f.monto), 0);
+  const deuda = pres.reduce((a, f) => a + Number(f.monto) * (Number(f.cuotas) - (f.cuotas_pagadas || 0)), 0);
+  const tI = ing.reduce((a, f) => a + Number(f.monto), 0), tG = gas.reduce((a, f) => a + Number(f.monto), 0) + tP;
   const hoy = new Date().getDate();
   const fila = f => {
     const ci = catIco(f.categoria, f.tipo);
@@ -1194,6 +1212,17 @@ function renderFijos(){
       <span class="ic tint" style="--c:${ci.color}">${ci.svg}</span>
       <span style="min-width:0"><b>${esc(f.nombre)}</b><small>Todos los meses el día ${f.dia} · ${esc(f.medio)} · próximo ${prox}</small></span>
       <span class="amt num ${f.tipo === 'Ingreso' ? 'pos' : ''}">${signed(Number(f.monto), f.tipo)}</span></button>`;
+  };
+  const filaPrestamo = f => {
+    const ci = catIco(f.categoria, f.tipo);
+    const total = Number(f.cuotas), hechas = Math.min(total, f.cuotas_pagadas || 0), faltan = total - hechas;
+    const sub = f.activo === false ? `Terminado · ${total} cuotas pagadas` :
+      `Cuota ${hechas} de ${total} · faltan ${money(Number(f.monto) * faltan)} · el día ${f.dia}`;
+    return `<button class="row" data-act="fijover" data-id="${esc(f.id)}">
+      <span class="ic tint" style="--c:${ci.color}">${ci.svg}</span>
+      <span style="min-width:0"><b>${esc(f.nombre)}</b><small>${sub}</small>
+        <span class="cuotabar"><i style="width:${Math.round(hechas / total * 100)}%"></i></span></span>
+      <span class="amt num">${f.activo === false ? '✓' : signed(Number(f.monto), f.tipo)}</span></button>`;
   };
   $('#main').innerHTML = `
     ${encabezadoVista('Fijos', 'Se cargan solos cada mes, el día que elijas')}
@@ -1207,21 +1236,37 @@ function renderFijos(){
     </div>
     <div class="day"><span>Ingresos fijos</span><span class="num">${money(tI)}</span></div>
     ${ing.length ? `<div class="list">${ing.map(fila).join('')}</div>` : `<div class="card empty">Agregá tu sueldo u otros ingresos que cobres todos los meses.</div>`}
-    <div class="day"><span>Gastos fijos</span><span class="num">${money(tG)}</span></div>
-    ${gas.length ? `<div class="list">${gas.map(fila).join('')}</div>` : `<div class="card empty">Agregá alquiler, servicios, suscripciones o cuotas.</div>`}
-    <button class="primary" data-act="fijonuevo" style="margin-top:18px;display:flex;align-items:center;justify-content:center;gap:8px">${ico('mas')}Agregar fijo</button>`;
+    <div class="day"><span>Gastos fijos</span><span class="num">${money(tG - tP)}</span></div>
+    ${gas.length ? `<div class="list">${gas.map(fila).join('')}</div>` : `<div class="card empty">Agregá alquiler, servicios o suscripciones.</div>`}
+    <div class="day"><span>Préstamos y cuotas</span><span class="num">${pres.length ? 'debés ' + money(deuda) : ''}</span></div>
+    ${pres.length || pagados.length ? `<div class="list">${pres.concat(pagados).map(filaPrestamo).join('')}</div>` :
+      `<div class="card empty">Agregá préstamos o compras en cuotas: se cargan solas cada mes y se terminan solas en la última cuota.</div>`}
+    <div class="btnrow" style="margin-top:18px">
+      <button class="primary" data-act="fijonuevo" style="margin:0;display:flex;align-items:center;justify-content:center;gap:8px">${ico('mas')}Agregar fijo</button>
+      <button class="ghost" data-act="prestamonuevo" style="margin:0;height:54px;display:flex;align-items:center;justify-content:center;gap:8px">${ico('banco')}Préstamo</button>
+    </div>`;
 }
 
 function abrirFormFijo(pre){
   pre = pre || {};
-  const st = {tipo: pre.tipo || 'Gasto', medio: pre.medio || 'Transferencia', cat: pre.categoria || null};
+  const st = {tipo: pre.tipo || 'Gasto', medio: pre.medio || 'Transferencia', cat: pre.categoria || null,
+    prestamo: Number(pre.cuotas) > 0 || !!pre.prestamo, cuotas: Number(pre.cuotas) || 12, pagadas: Number(pre.cuotas_pagadas) || 0};
+  if (st.prestamo && !st.cat) st.cat = 'Préstamos';
   const hoyDia = new Date().getDate();
   const s = abrirSheet(`
-    <h2>${pre.id ? 'Editar fijo' : 'Nuevo fijo'}</h2>
+    <h2>${pre.id ? (st.prestamo ? 'Editar préstamo' : 'Editar fijo') : (st.prestamo ? 'Nuevo préstamo' : 'Nuevo fijo')}</h2>
     <div class="seg big" id="xTipo"><button data-t="Gasto">Gasto fijo</button><button data-t="Ingreso">Ingreso fijo</button></div>
     <label class="amount"><span>$</span><input id="xMonto" inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Monto"></label>
     <div class="hint" id="xHint">&nbsp;</div>
-    <input class="field" id="xNombre" placeholder="Nombre (ej: Alquiler, Netflix, Sueldo)" maxlength="40" autocomplete="off" value="${esc(pre.nombre || '')}">
+    <input class="field" id="xNombre" placeholder="${st.prestamo ? 'Nombre (ej: Préstamo banco)' : 'Nombre (ej: Alquiler, Netflix, Sueldo)'}" maxlength="40" autocomplete="off" value="${esc(pre.nombre || '')}">
+    <label class="check" id="xPresWrap" style="justify-content:flex-start;margin:14px 2px 0"><input type="checkbox" id="xPres" ${st.prestamo ? 'checked' : ''}> Es un préstamo o una compra en cuotas</label>
+    <div id="xCuotas">
+      <div class="lbl2">Cantidad de cuotas</div>
+      <div class="diasel"><button type="button" data-q="-1" aria-label="Una cuota menos">−</button><b id="xQ" class="num"></b><button type="button" data-q="1" aria-label="Una cuota más">+</button></div>
+      <div class="lbl2">Cuotas que ya pagaste</div>
+      <div class="diasel"><button type="button" data-p="-1" aria-label="Una pagada menos">−</button><b id="xP" class="num"></b><button type="button" data-p="1" aria-label="Una pagada más">+</button></div>
+      <p class="msg" id="xResumen" style="text-align:center;color:var(--muted)"></p>
+    </div>
     <div class="lbl2">Categoría</div><div class="chips" id="xCats"></div>
     <div class="lbl2">Medio</div>
     <div class="seg big" id="xMedio">${MEDIOS.map(([m, ic]) => `<button data-m="${m}">${ico(ic)} ${m}</button>`).join('')}</div>
@@ -1246,8 +1291,15 @@ function abrirFormFijo(pre){
     $('#xCats', s).innerHTML = lista.map(c =>
       `<button type="button" class="chip ${c.nombre === st.cat ? 'on' : ''}" data-cat="${esc(c.nombre)}" style="--c:${estiloCat(c.nombre, c.icono).color}">${ico(estiloCat(c.nombre, c.icono).icono)}${esc(c.nombre)}</button>`).join('');
     $('#xDia', s).textContent = dia;
+    const pres = st.prestamo && st.tipo === 'Gasto';
+    $('#xPresWrap', s).hidden = st.tipo !== 'Gasto';
+    $('#xCuotas', s).hidden = !pres;
+    st.pagadas = Math.min(st.pagadas, st.cuotas - 1);
+    $('#xQ', s).textContent = st.cuotas; $('#xP', s).textContent = st.pagadas;
+    const nm = parseFloat(monto.value.replace(/\./g, '').replace(',', '.')) || 0;
+    $('#xResumen', s).textContent = `Te faltan ${st.cuotas - st.pagadas} cuotas` + (nm ? ` · ${money(nm * (st.cuotas - st.pagadas))} en total` : '') + '. Cuando pagues la última, deja de cargarse sola.';
     const w = $('#xEsteWrap', s); if (w) w.hidden = dia > new Date().getDate();
-    $('#xGuardar', s).textContent = pre.id ? 'Guardar cambios' : (st.tipo === 'Gasto' ? 'Guardar gasto fijo' : 'Guardar ingreso fijo');
+    $('#xGuardar', s).textContent = pre.id ? 'Guardar cambios' : (pres ? 'Guardar préstamo' : st.tipo === 'Gasto' ? 'Guardar gasto fijo' : 'Guardar ingreso fijo');
   };
   pintar();
   s.onclick = e => {
@@ -1256,8 +1308,15 @@ function abrirFormFijo(pre){
     else if (b.dataset.m) { st.medio = b.dataset.m; pintar(); }
     else if (b.dataset.cat !== undefined) { st.cat = b.dataset.cat; pintar(); }
     else if (b.dataset.d) { dia = Math.min(31, Math.max(1, dia + Number(b.dataset.d))); pintar(); }
+    else if (b.dataset.q) { st.cuotas = Math.min(120, Math.max(2, st.cuotas + Number(b.dataset.q))); pintar(); }
+    else if (b.dataset.p) { st.pagadas = Math.min(st.cuotas - 1, Math.max(0, st.pagadas + Number(b.dataset.p))); pintar(); }
     else if (b.id === 'xGuardar') guardarFijo();
   };
+  $('#xPres', s).addEventListener('change', e => {
+    st.prestamo = e.target.checked;
+    if (st.prestamo && (st.cat === cats().filter(c => c.tipo === 'Gasto')[0]?.nombre) && cats().some(c => c.nombre === 'Préstamos')) st.cat = 'Préstamos';
+    pintar();
+  });
   monto.addEventListener('input', e => {
     let v = monto.value;
     if (e.data === '.' && !v.includes(',')) v = v.replace(/\.(?=[^.]*$)/, ',');
@@ -1267,7 +1326,7 @@ function abrirFormFijo(pre){
     const dec = i >= 0 ? v.slice(i + 1).replace(/,/g, '').slice(0, 2) : null;
     ent = ent.replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     monto.value = dec !== null ? (ent || '0') + ',' + dec : ent;
-    $('#xHint', s).innerHTML = '&nbsp;'; anchoX();
+    $('#xHint', s).innerHTML = '&nbsp;'; anchoX(); if (st.prestamo) pintar();
   });
   function guardarFijo(){
     const n = parseFloat(monto.value.replace(/\./g, '').replace(',', '.'));
@@ -1278,6 +1337,8 @@ function abrirFormFijo(pre){
     const desdeEste = !este || este.checked || dia > hoy.getDate();
     const f = {id: pre.id || 'fx-' + uid().slice(4), nombre, tipo: st.tipo, monto: Math.round(n * 100) / 100, categoria: st.cat, medio: st.medio, dia, activo: true,
       ultimo_mes: pre.id ? pre.ultimo_mes : mesClave(new Date(hoy.getFullYear(), hoy.getMonth() - (desdeEste ? 1 : 0), 1))};
+    if (st.prestamo && st.tipo === 'Gasto') { f.cuotas = st.cuotas; f.cuotas_pagadas = st.pagadas; f.activo = st.pagadas < st.cuotas; }
+    else { f.cuotas = null; f.cuotas_pagadas = 0; }
     D.fijos = (D.fijos || []).filter(x => x.id !== f.id).concat(f);
     guardarFijoEnCola(f);
     const creados = generarFijos();
@@ -1311,12 +1372,30 @@ function filaHtml(m, conFecha){
    ===================================================================== */
 function abrirSheet(html, tipo){
   const s = $('#sheet');
-  s.innerHTML = '<div class="handle"></div>' + html;
+  s.innerHTML = '<div class="handle"></div><button class="sheet-x" data-act="cerrar" aria-label="Cerrar">' + ico('cerrar') + '</button>' + html;
   if (tipo) s.dataset.tipo = tipo; else delete s.dataset.tipo;
   s.onclick = null;
   document.body.classList.add('sheet-open');
   return s;
 }
+(function(){
+  let y0 = null, dy = 0;
+  document.addEventListener('touchstart', e => {
+    const sh = e.target.closest('#sheet');
+    y0 = (sh && innerWidth < 760 && sh.scrollTop <= 0 && document.body.classList.contains('sheet-open')) ? e.touches[0].clientY : null; dy = 0;
+  }, {passive: true});
+  document.addEventListener('touchmove', e => {
+    if (y0 === null) return;
+    dy = e.touches[0].clientY - y0;
+    const sh = $('#sheet'); if (dy > 0 && sh) { sh.style.transition = 'none'; sh.style.transform = `translateY(${dy}px)`; }
+  }, {passive: true});
+  document.addEventListener('touchend', () => {
+    const sh = $('#sheet'); if (y0 === null || !sh) return;
+    sh.style.transition = ''; sh.style.transform = '';
+    if (dy > 90 && innerWidth < 760) cerrarSheet();
+    y0 = null; dy = 0;
+  });
+})();
 function cerrarSheet(){ document.body.classList.remove('sheet-open'); document.activeElement?.blur(); }
 
 function abrirForm(tipo, pre){
@@ -1440,8 +1519,7 @@ function abrirAjustes(){
 
       <div class="lbl2">Atajo de Siri</div>
       <div class="card" style="margin:0">
-        <div style="font-size:14px;color:var(--muted)">Decí “Oye Siri, anotar en Numa” y después “gasté 3500 en el súper”. Al instalarlo, Atajos te pide tu clave: ya queda copiada, mantené apretado el campo y elegí <b>Pegar</b>.</div>
-        <div style="font-size:12.5px;color:var(--muted);margin-top:8px">Hacelo desde <b>Safari</b>. Si aparece “¿Descargar?”, tocá <b>Descargar</b>, después la flecha azul de descargas y el archivo: se abre Atajos.</div>
+        <div style="font-size:14px;color:var(--muted)">Decí “Oye Siri, anotar en Numa” y después “gasté 3500 en el súper”. Se guarda solo en tu cuenta.</div>
         <button class="primary" data-act="atajo" data-f="Anotar en Numa.shortcut">Instalar atajo “Anotar en Numa”</button>
         <button class="ghost" data-act="atajo" data-f="Sincronizar Numa.shortcut">Instalar “Sincronizar Numa” (opcional)</button>
         <div class="lbl2" style="margin-top:18px">Centro de control</div>
@@ -1449,6 +1527,9 @@ function abrirAjustes(){
         <div class="btnrow"><button class="ghost" data-act="atajo" data-f="Ingreso.shortcut" style="display:flex;align-items:center;justify-content:center;gap:7px"><span style="color:var(--ing)">${ico('arriba')}</span>Ingreso</button>
           <button class="ghost" data-act="atajo" data-f="Gasto.shortcut" style="display:flex;align-items:center;justify-content:center;gap:7px"><span style="color:var(--gas)">${ico('abajo')}</span>Gasto</button></div>
         <div style="font-size:12.5px;color:var(--muted);margin-top:8px">Después: abrí el Centro de control, tocá <b>+</b> arriba a la izquierda, <b>Agregar un control</b> &gt; <b>Atajo</b> y elegí “Ingreso”. Repetí con “Gasto”. Necesita iOS 18 o posterior.</div>
+        <div class="lbl2" style="margin-top:18px">Conectar con tu cuenta</div>
+        <div style="font-size:14px;color:var(--muted)">Después de instalar un atajo, tocá acá una vez. No hay que copiar ni pegar nada.</div>
+        <button class="primary" data-act="conectar" data-n="Anotar en Numa">Conectar atajos</button>
         <div class="lbl2" style="margin-top:16px">Tu clave personal</div>
         <div class="key" id="kClave">${p.clave_atajo ? '•••• •••• •••• ' + esc(p.clave_atajo.slice(-4)) : 'Sincronizá para ver tu clave'}</div>
         <div class="btnrow"><button class="ghost" data-act="copiarclave">Copiar clave</button><button class="ghost" id="kNueva">Generar nueva</button></div>
@@ -1485,33 +1566,35 @@ function abrirAjustes(){
 
 function instalarAtajo(archivo){
   const k = D.perfil?.clave_atajo;
-  if (!k) { toast('Sincronizá primero para obtener tu clave'); return; }
+  if (!k) { toast('Sincronizá primero para conectar los atajos'); return; }
   const nombre = archivo.replace(/\.shortcut$/, '');
   const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
   const instalada = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
-  const paso0 = (ios && instalada) ? `<div class="gp"><i>0</i><div><b>Se abre Safari</b><small>Los atajos solo se instalan desde Safari. Si te pide iniciar sesión, usá tu misma cuenta.</small></div></div>` : '';
+  const paso0 = (ios && instalada) ? `<div class="gp"><i>0</i><div><b>Se abre Safari</b><small>Los atajos solo se descargan desde Safari. Después volvé a Numa para el último paso.</small></div></div>` : '';
   abrirSheet(`
     <h2>Instalar “${esc(nombre)}”</h2>
-    <p class="msg" style="color:var(--muted);margin:0 0 6px">Son 3 toques. Tu clave se copia sola.</p>
+    <p class="msg" style="color:var(--muted);margin:0 0 6px">Sin claves ni datos para copiar.</p>
     <div class="guia">
       ${paso0}
-      <div class="gp"><i>1</i><div><b>Tocá “Descargar”</b><small>Safari te pregunta si querés descargar el atajo.</small>
+      <div class="gp"><i>1</i><div><b>Descargalo</b><small>Tocá el botón de abajo y después “Descargar”.</small>
         <div class="mock"><span>¿Descargar “${esc(nombre)}”?</span><em>Descargar</em></div></div></div>
-      <div class="gp"><i>2</i><div><b>Abrí la descarga</b><small>Tocá la flecha azul de la barra de Safari y después el archivo.</small>
-        <div class="mock"><span class="dl">${ico('abajo')}</span><span>${esc(nombre)}.shortcut</span></div></div></div>
-      <div class="gp"><i>3</i><div><b>Pegá la clave y agregá</b><small>En Atajos borrá “PEGAR-TU-CLAVE”, mantené apretado el campo, elegí <b>Pegar</b> y tocá <b>Agregar atajo</b>.</small>
-        <div class="mock col"><span class="fld">PEGAR-TU-CLAVE</span><em>Agregar atajo</em></div></div></div>
+      <div class="gp"><i>2</i><div><b>Agregalo</b><small>Tocá la flecha azul de Safari, el archivo y <b>Agregar atajo</b>.</small>
+        <div class="mock"><span class="dl">${ico('abajo')}</span><span>${esc(nombre)}.shortcut</span><em>Agregar atajo</em></div></div></div>
+      <div class="gp"><i>3</i><div><b>Volvé acá y conectalo</b><small>Un toque y queda vinculado a tu cuenta.</small></div></div>
     </div>
-    <button class="primary" data-act="atajogo" data-f="${esc(archivo)}">Copiar clave y descargar</button>
-    <button class="ghost" onclick="cerrarSheet()">Cancelar</button>`);
+    <button class="primary" data-act="atajogo" data-f="${esc(archivo)}">1 · Descargar atajo</button>
+    <button class="primary" style="background:var(--ing);color:var(--on-ing)" data-act="conectar" data-n="${esc(nombre)}">3 · Conectar con mi cuenta</button>`);
 }
 function descargarAtajo(archivo){
-  const k = D.perfil?.clave_atajo;
-  // Todo en el mismo toque (si se espera, el iPhone bloquea la descarga)
-  if (k) copiar(k).then(ok => toast(ok ? '✓ Clave copiada' : 'Copiá la clave desde Ajustes'));
   const url = new URL(encodeURI(archivo), location.href).href;
   const instalada = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
   location.href = (instalada && /iPhone|iPad|iPod/.test(navigator.userAgent)) ? 'x-safari-' + url : url;
+}
+/** Abre el atajo pasándole la clave: el atajo la guarda y queda conectado (sirve para todos los atajos de Numa). */
+function conectarAtajos(nombre){
+  const k = D.perfil?.clave_atajo;
+  if (!k) { toast('Sincronizá primero para conectar los atajos'); return; }
+  location.href = 'shortcuts://run-shortcut?name=' + encodeURIComponent(nombre) + '&input=text&text=' + encodeURIComponent(k);
 }
 
 /* =====================================================================
@@ -1529,6 +1612,7 @@ document.addEventListener('click', e => {
   else if (a === 'vista') { ui.vista = b.dataset.v; cerrarMenu(); window.scrollTo(0, 0); render(); }
   else if (a === 'movfiltro') { ui.movFiltro = b.dataset.f; render(); }
   else if (a === 'fijonuevo') abrirFormFijo();
+  else if (a === 'prestamonuevo') abrirFormFijo({prestamo: true, tipo: 'Gasto'});
   else if (a === 'fijover') { const f = (D.fijos || []).find(x => x.id === b.dataset.id); if (f) abrirFormFijo(f); }
   else if (a === 'cerrar') cerrarSheet();
   else if (a === 'sync') { if (modo === 'demo') abrirAjustes(); else sincronizar(true); }
@@ -1542,6 +1626,7 @@ document.addEventListener('click', e => {
   else if (a === 'salir') { cerrarSheet(); sb.auth.signOut(); }
   else if (a === 'atajo') instalarAtajo(b.dataset.f);
   else if (a === 'atajogo') descargarAtajo(b.dataset.f);
+  else if (a === 'conectar') conectarAtajos(b.dataset.n);
   else if (a === 'copiarclave') { const k = D.perfil?.clave_atajo; if (k) copiar(k).then(ok => toast(ok ? '✓ Clave copiada' : 'No se pudo copiar')); }
   else if (a === 'revborrar') { D.revisar = D.revisar.filter(r => r.id !== b.dataset.id); guardar(); render(); }
   else if (a === 'revcargar') { const r = D.revisar.find(x => x.id === b.dataset.id); if (r) abrirForm('Gasto', {id: r.id, nota: r.texto, fecha: r.fecha, ...interpretarFrase(r.texto, cats())}); }
