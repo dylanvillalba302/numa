@@ -313,6 +313,19 @@ body.menu-open{overflow:hidden}
 .amount .mon.usd{color:var(--ing);font-size:24px}
 .eq{display:block;font-size:11.5px;color:var(--muted);font-weight:600;text-align:right;margin-top:1px}
 .wallet .eq{text-align:left}
+/* Guía de bienvenida */
+#tour{position:fixed;inset:0;z-index:90}
+.tour-hole{position:fixed;border-radius:22px;box-shadow:0 0 0 9999px rgba(3,7,18,.72);transition:all .35s cubic-bezier(.2,.9,.25,1);pointer-events:none;outline:2px solid rgba(125,211,252,.9);outline-offset:0}
+.tour-card{position:fixed;left:0;right:0;margin:0 auto;width:min(360px,calc(100vw - 32px));background:var(--card);color:var(--text);border:1px solid var(--line);
+  border-radius:20px;padding:16px 16px 12px;box-shadow:var(--shadow);animation:subir .3s both}
+.tour-card b{display:block;font-size:17px;letter-spacing:-.01em}
+.tour-card p{margin:6px 0 12px;color:var(--muted);font-size:14.5px;line-height:1.45}
+.tour-pie{display:flex;align-items:center;gap:8px}
+.tour-dots{display:flex;gap:5px;flex:1}
+.tour-dots i{width:6px;height:6px;border-radius:50%;background:var(--bar-muted)}
+.tour-dots i.on{background:var(--accent);width:16px;border-radius:9px}
+.tour-saltar{font-size:14px;font-weight:650;color:var(--muted);padding:9px 10px}
+.tour-sig{font-size:14.5px;font-weight:700;background:var(--brand);color:#fff;border-radius:12px;padding:9px 16px}
 /* Guía para instalar atajos */
 .guia{display:flex;flex-direction:column;gap:14px;margin:14px 0 6px}
 .gp{display:flex;gap:12px;align-items:flex-start}
@@ -895,6 +908,61 @@ function render(){
   if (ui.vista === 'movimientos') return renderMovimientos();
   if (ui.vista === 'fijos') return renderFijos();
   renderPanel();
+  if (!LS.get('numa_tour_v1', false) && !tourActivo) { tourActivo = true; setTimeout(iniciarTour, Math.max(600, animHasta - Date.now() + 200)); }
+}
+
+/* =====================================================================
+   Guía de bienvenida: la primera vez que se entra, explica cada parte en pocos pasos
+   ===================================================================== */
+let tourActivo = false;
+function pasosTour(){
+  const pc = innerWidth >= 960;
+  return [
+    {t: '¡Bienvenido a Numa!', d: 'Te muestro en 30 segundos cómo funciona. Podés saltearlo cuando quieras.'},
+    {sel: '.t-hero', t: 'Balance del mes', d: 'Lo que entró menos lo que salió este mes. La barra muestra qué parte de tus ingresos ya gastaste. Con las flechas de arriba cambiás de mes.'},
+    {sel: '.t-disp', t: 'Disponible', d: 'Cuánta plata tenés en efectivo, en el banco y en dólares, sumando todo lo que cargaste.'},
+    {sel: '.t-cat .donut', t: 'En qué se te va la plata', d: 'Tus gastos por categoría. Tocá una porción o una fila para ver solo esa.'},
+    {sel: pc ? '.top-acc' : '.actions .in', t: 'Cargar en segundos', d: 'Tocá Ingreso o Gasto, poné el monto y listo. Tocá el $ para cargarlo en dólares. Funciona aunque no tengas señal.'},
+    {sel: '#estado', t: 'Todo guardado', d: 'Punto celeste: todo está guardado en tu cuenta. Naranja: hay algo esperando internet y se manda solo.'},
+    {sel: pc ? '.drawer' : '.icon-btn.menu', t: 'Menú', d: 'Acá están todos tus movimientos, los gastos fijos y préstamos que se cargan solos cada mes, y Ajustes.'},
+    {t: 'Anotá con Siri', d: 'En Ajustes podés instalar el atajo y decir “Oye Siri, anotar en Numa” para cargar sin abrir la app.', fin: true},
+  ];
+}
+function iniciarTour(paso){
+  if (!(modo === 'app' || modo === 'demo') || ui.vista !== 'panel') { tourActivo = false; return; }
+  const pasos = pasosTour();
+  let i = paso || 0;
+  let capa = $('#tour');
+  if (!capa) { capa = document.createElement('div'); capa.id = 'tour'; document.body.appendChild(capa); }
+  const terminar = () => { LS.set('numa_tour_v1', true); tourActivo = false; capa.remove(); window.removeEventListener('resize', mostrar); };
+  function mostrar(){
+    const p = pasos[i];
+    let el = p.sel ? document.querySelector(p.sel) : null;
+    if (el && !el.getClientRects().length) el = null;
+    if (el) el.scrollIntoView({block: 'center', behavior: 'instant'});
+    const r = el ? el.getBoundingClientRect() : null;
+    const pad = 8;
+    const hueco = r ? `<div class="tour-hole" style="left:${r.left - pad}px;top:${r.top - pad}px;width:${r.width + pad * 2}px;height:${r.height + pad * 2}px"></div>`
+      : '<div class="tour-hole" style="left:50%;top:40%;width:0;height:0;outline:0"></div>';
+    const abajo = !r || r.top + r.height / 2 < innerHeight / 2;
+    const pos = !r ? 'top:calc(50% - 90px)' : abajo ? `top:${Math.min(innerHeight - 220, r.bottom + pad + 12)}px` : `bottom:${Math.min(innerHeight - 220, innerHeight - r.top + pad + 12)}px`;
+    capa.innerHTML = `${hueco}
+      <div class="tour-card" style="${pos}" role="dialog" aria-label="${esc(p.t)}">
+        <b>${esc(p.t)}</b><p>${esc(p.d)}</p>
+        <div class="tour-pie">
+          <span class="tour-dots">${pasos.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</span>
+          ${p.fin ? '' : '<button class="tour-saltar" data-tour="saltar">Saltar</button>'}
+          <button class="tour-sig" data-tour="sig">${p.fin ? 'Empezar' : i === 0 ? 'Mostrame' : 'Siguiente'}</button>
+        </div>
+      </div>`;
+  }
+  capa.onclick = e => {
+    const b = e.target.closest('[data-tour]'); if (!b) return;
+    if (b.dataset.tour === 'saltar' || pasos[i].fin) { terminar(); window.scrollTo({top: 0, behavior: 'smooth'}); return; }
+    i++; mostrar();
+  };
+  window.addEventListener('resize', mostrar);
+  mostrar();
 }
 
 function renderSinConfig(){
@@ -1582,6 +1650,7 @@ function abrirAjustes(){
         <div class="btnrow"><button class="ghost" data-act="copiarclave">Copiar clave</button><button class="ghost" id="kNueva">Generar nueva</button></div>
       </div>`}
 
+    <button class="ghost" data-act="verguia">Ver la guía de bienvenida</button>
     <div class="lbl2">Dólar para convertir</div>
     <div class="seg big">${DOLAR_TIPOS.map(([v, t]) => `<button class="${tipoDolar() === v ? 'on' : ''}" data-act="dolartipo" data-t="${v}">${t}</button>`).join('')}</div>
     <p class="msg" style="color:var(--muted)">${cotiz() ? `Hoy: ${money(cotiz())} (venta) · actualizado ${esc(new Date(DOLAR.fecha).toLocaleString('es-AR', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'}))}` : 'Se actualiza solo cuando hay internet.'} Tocá <b>$</b> al cargar un monto para pasarlo a US$.</p>
@@ -1657,6 +1726,7 @@ document.addEventListener('click', e => {
   else if (a === 'ver') abrirDetalle(b.dataset.id);
   else if (a === 'ajustes') { cerrarMenu(); abrirAjustes(); }
   else if (a === 'menu') abrirMenu();
+  else if (a === 'verguia') { cerrarSheet(); cerrarMenu && cerrarMenu(); ui.vista = 'panel'; LS.set('numa_tour_v1', false); tourActivo = false; render(); }
   else if (a === 'dolartipo') { LS.set('numa_dolar_tipo', b.dataset.t); DOLAR = null; actualizarDolar(true).then(() => abrirAjustes()); abrirAjustes(); }
   else if (a === 'tema') { aplicarTema(b.dataset.t); abrirAjustes(); }
   else if (a === 'cerrarmenu') cerrarMenu();
