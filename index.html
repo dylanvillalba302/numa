@@ -328,6 +328,12 @@ body.menu-open{overflow:hidden}
 .tour-sig{font-size:14.5px;font-weight:700;background:var(--brand);color:#fff;border-radius:12px;padding:9px 16px}
 /* Guía para instalar atajos */
 .guia{display:flex;flex-direction:column;gap:14px;margin:14px 0 6px}
+.planbox{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--bg)}
+.planbox b{display:block;font-size:15px}
+.planbox small{display:block;color:var(--muted);font-size:13px;margin-top:3px;line-height:1.4}
+.planbox.ok{border-color:var(--ing)}
+.planbox.fin{border-color:var(--gas)}
+.planbox .primary{margin-top:10px}
 .gp{display:flex;gap:12px;align-items:flex-start}
 .gp > i{font-style:normal;flex:none;width:28px;height:28px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-weight:800;font-size:14px}
 .gp > div > b{display:block;font-size:15px}
@@ -789,7 +795,7 @@ async function sincronizar(manual){
 
     // 2) Perfil y categorías
     const [perfil, categorias] = await Promise.all([
-      sb.from('perfiles').select('plan, clave_atajo').maybeSingle(),
+      sb.from('perfiles').select('plan, clave_atajo, creado').maybeSingle(),
       sb.from('categorias').select('tipo, nombre, icono, orden').order('orden'),
     ]);
     if (perfil.error) throw perfil.error;
@@ -925,7 +931,7 @@ function pasosTour(){
     {sel: pc ? '.top-acc' : '.actions .in', t: 'Cargar en segundos', d: 'Tocá Ingreso o Gasto, poné el monto y listo. Tocá el $ para cargarlo en dólares. Funciona aunque no tengas señal.'},
     {sel: '#estado', t: 'Todo guardado', d: 'Punto celeste: todo está guardado en tu cuenta. Naranja: hay algo esperando internet y se manda solo.'},
     {sel: pc ? '.drawer' : '.icon-btn.menu', t: 'Menú', d: 'Acá están todos tus movimientos, los gastos fijos y préstamos que se cargan solos cada mes, y Ajustes.'},
-    {t: 'Anotá con Siri', d: 'En Ajustes podés instalar el atajo “Anotar en Numa” y decir “Oye Siri, anotar en Numa” para cargar sin abrir la app.'},
+    {t: 'Anotá con Siri', d: 'En Ajustes podés instalar el atajo “Anotar en Numa” y decir “Oye Siri, anotar en Numa” para cargar sin abrir la app. Los atajos son gratis los primeros 14 días.'},
     {t: 'Botones en la barra de arriba', d: 'También podés tener Ingreso y Gasto en el Centro de control del iPhone: instalalos desde Ajustes, bajá la barra, tocá + › Agregar un control › Atajo y elegí cada uno.', fin: true},
   ];
 }
@@ -1619,6 +1625,7 @@ function abrirAjustes(){
   const act = D.actualizado ? new Date(D.actualizado) : null;
   const p = D.perfil || {};
   const demo = modo === 'demo';
+  const ep = estadoPlan();
   const s = abrirSheet(`
     <h2>Ajustes</h2>
     ${demo ? `
@@ -1627,25 +1634,34 @@ function abrirAjustes(){
         ${sb ? '<button class="primary" data-act="salirdemo">Crear mi cuenta</button>' : ''}</div>` : `
       <div class="card" style="padding:4px 16px;margin:0">
         <div class="kv"><span>Cuenta</span><b>${esc(user?.email || '')}</b></div>
-        <div class="kv"><span>Plan</span><b><span class="badge ${p.plan === 'premium' ? 'prem' : ''}">${p.plan === 'premium' ? 'Premium' : 'Gratis'}</span></b></div>
+        <div class="kv"><span>Plan</span><b><span class="badge ${ep.premium ? 'prem' : ''}">${ep.premium ? 'Premium' : ep.dias > 0 ? `Prueba gratis · ${ep.dias} ${ep.dias === 1 ? 'día' : 'días'}` : 'Gratis'}</span></b></div>
         <div class="kv"><span>Pendientes de envío</span><b>${D.queue.length}</b></div>
         <div class="kv"><span>Última sincronización</span><b>${act ? esc(act.toLocaleString('es-AR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})) : '—'}</b></div>
       </div>
       <button class="ghost" data-act="sync">Sincronizar ahora</button>
 
-      <div class="lbl2">Atajo de Siri</div>
+      <div class="lbl2">Atajos de iPhone</div>
       <div class="card" style="margin:0">
-        <div style="font-size:14px;color:var(--muted)">Decí “Oye Siri, anotar en Numa” y después “gasté 3500 en el súper”. Se guarda solo en tu cuenta.</div>
-        <button class="primary" data-act="atajo" data-f="Anotar en Numa.shortcut">Instalar atajo “Anotar en Numa”</button>
-        <button class="ghost" data-act="atajo" data-f="Sincronizar Numa.shortcut">Instalar “Sincronizar Numa” (opcional)</button>
-        <div class="lbl2" style="margin-top:18px">Centro de control</div>
-        <div style="font-size:14px;color:var(--muted)">Dos botones para cargar en 3 toques sin abrir la app: monto, categoría y medio.</div>
+        <div class="planbox ${ep.premium ? 'ok' : ep.dias > 0 ? '' : 'fin'}">${ep.premium
+          ? '<b>Premium activo</b><small>Tus atajos funcionan sin límite.</small>'
+          : ep.dias > 0
+            ? `<b>Prueba gratis: te ${ep.dias === 1 ? 'queda 1 día' : `quedan ${ep.dias} días`}</b><small>Después, Numa Premium cuesta ${money(PRECIO_PREMIUM)} por mes. La app sigue gratis.</small>`
+            : `<b>Tu prueba gratis terminó</b><small>Activá Numa Premium (${money(PRECIO_PREMIUM)} por mes) para seguir usando los atajos. Lo que anotes queda guardado en tu iPhone.</small>`}
+          ${ep.premium ? '' : '<button class="primary" data-act="premium">Activar Premium</button>'}</div>
+
+        <div class="guia" style="margin-top:12px">
+          <div class="gp"><i>1</i><div><b>Instalalos</b><small>Tocá cada botón de abajo y después <b>Agregar atajo</b>. Se hace una sola vez.</small></div></div>
+          <div class="gp"><i>2</i><div><b>Conectalos</b><small>Tocá <b>Conectar atajos</b>. Una sola vez, sin copiar nada.</small></div></div>
+          <div class="gp"><i>3</i><div><b>Usalos</b><small><b>Con Siri:</b> decí “Oye Siri, anotar en Numa” y después “gasté 3500 en el súper”.<br><b>Sin hablar:</b> tocá Ingreso o Gasto en el Centro de control y elegí monto, categoría y medio.</small></div></div>
+        </div>
+
+        <button class="primary" data-act="atajo" data-f="Anotar en Numa.shortcut">Instalar “Anotar en Numa” (Siri)</button>
         <div class="btnrow"><button class="ghost" data-act="atajo" data-f="Ingreso.shortcut" style="display:flex;align-items:center;justify-content:center;gap:7px"><span style="color:var(--ing)">${ico('arriba')}</span>Ingreso</button>
           <button class="ghost" data-act="atajo" data-f="Gasto.shortcut" style="display:flex;align-items:center;justify-content:center;gap:7px"><span style="color:var(--gas)">${ico('abajo')}</span>Gasto</button></div>
-        <div style="font-size:12.5px;color:var(--muted);margin-top:8px">Después: abrí el Centro de control, tocá <b>+</b> arriba a la izquierda, <b>Agregar un control</b> &gt; <b>Atajo</b> y elegí “Ingreso”. Repetí con “Gasto”. Necesita iOS 18 o posterior.</div>
-        <div class="lbl2" style="margin-top:18px">Conectar con tu cuenta</div>
-        <div style="font-size:14px;color:var(--muted)">Después de instalar un atajo, tocá acá una vez. No hay que copiar ni pegar nada.</div>
-        <button class="primary" data-act="conectar" data-n="Anotar en Numa">Conectar atajos</button>
+        <button class="primary" style="background:var(--ing);color:var(--on-ing)" data-act="conectar" data-n="Anotar en Numa">Conectar atajos</button>
+
+        <div style="font-size:12.5px;color:var(--muted);margin-top:10px"><b>Botones en el Centro de control</b> (iOS 18 o posterior): deslizá desde arriba a la derecha, tocá <b>+</b> &gt; <b>Agregar un control</b> &gt; <b>Atajo</b> y elegí “Ingreso”. Repetí con “Gasto”.<br><b>Sin internet:</b> lo que anotes queda en el iPhone y se manda solo la próxima vez que uses un atajo con conexión.</div>
+        <button class="ghost" data-act="atajo" data-f="Sincronizar Numa.shortcut">Instalar “Sincronizar Numa” (opcional)</button>
         <div class="lbl2" style="margin-top:16px">Tu clave personal</div>
         <div class="key" id="kClave">${p.clave_atajo ? '•••• •••• •••• ' + esc(p.clave_atajo.slice(-4)) : 'Sincronizá para ver tu clave'}</div>
         <div class="btnrow"><button class="ghost" data-act="copiarclave">Copiar clave</button><button class="ghost" id="kNueva">Generar nueva</button></div>
@@ -1711,6 +1727,14 @@ function descargarAtajo(archivo){
   location.href = (instalada && /iPhone|iPad|iPod/.test(navigator.userAgent)) ? 'x-safari-' + url : url;
 }
 /** Abre el atajo pasándole la clave: el atajo la guarda y queda conectado (sirve para todos los atajos de Numa). */
+/* Prueba gratis de los atajos: 14 días desde el registro (el servidor controla lo mismo en numa_anotar) */
+const PRUEBA_DIAS = 14, PRECIO_PREMIUM = 2500;
+function estadoPlan(){
+  const p = D.perfil || {};
+  if (p.plan === 'premium') return {premium: true, dias: 0};
+  const ini = p.creado ? new Date(p.creado).getTime() : Date.now();
+  return {premium: false, dias: Math.max(0, Math.ceil((ini + PRUEBA_DIAS * 864e5 - Date.now()) / 864e5))};
+}
 function conectarAtajos(nombre){
   const k = D.perfil?.clave_atajo;
   if (!k) { toast('Sincronizá primero para conectar los atajos'); return; }
@@ -1749,6 +1773,7 @@ document.addEventListener('click', e => {
   else if (a === 'atajo') instalarAtajo(b.dataset.f);
   else if (a === 'atajogo') descargarAtajo(b.dataset.f);
   else if (a === 'conectar') conectarAtajos(b.dataset.n);
+  else if (a === 'premium') toast('Muy pronto vas a poder pagar con Mercado Pago');
   else if (a === 'copiarclave') { const k = D.perfil?.clave_atajo; if (k) copiar(k).then(ok => toast(ok ? '✓ Clave copiada' : 'No se pudo copiar')); }
   else if (a === 'revborrar') { D.revisar = D.revisar.filter(r => r.id !== b.dataset.id); guardar(); render(); }
   else if (a === 'revcargar') { const r = D.revisar.find(x => x.id === b.dataset.id); if (r) abrirForm('Gasto', {id: r.id, nota: r.texto, fecha: r.fecha, ...interpretarFrase(r.texto, cats())}); }
