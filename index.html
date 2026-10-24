@@ -582,8 +582,11 @@ const esUSD = m => m && m.moneda === 'USD';
 const ars = m => esUSD(m) ? Number(m.monto) * cotiz() : Number(m.monto);
 const montoTxt = m => esUSD(m) ? plataUSD(Number(m.monto)) : money(Number(m.monto));
 const signedM = m => (m.tipo === 'Ingreso' ? '+' : '−') + montoTxt(m);
+/* Dólares: oculto por ahora. Poner en true para volver a mostrar el botón $ ↔ US$ y el ajuste del dólar. */
+const CON_DOLARES = false;
 let dolarPedido = 0;
 async function actualizarDolar(forzar){
+  if (!CON_DOLARES && !(D.movimientos || []).some(esUSD)) return;
   if (!forzar && Date.now() - dolarPedido < 20 * 60 * 1000 && DOLAR && DOLAR.tipo === tipoDolar()) return;
   dolarPedido = Date.now();
   try {
@@ -692,7 +695,7 @@ function interpretarFrase(texto, categorias){
   }
   if (mejor) out.monto = Math.round(mejor.n * 100) / 100;
 
-  out.moneda = /(^|\s)(usd|u\$s|us\$|u\$d|dolar|dolares|dolarcitos|verdes?)(\s|$)/.test(s) ? 'USD' : 'ARS';
+  out.moneda = CON_DOLARES && /(^|\s)(usd|u\$s|us\$|u\$d|dolar|dolares|dolarcitos|verdes?)(\s|$)/.test(s) ? 'USD' : 'ARS';
   out.medio = /\b(transf\w*|mp|mercado ?pago|banco|debito|tarjeta|cvu|cbu|alias|qr|uala|brubank|naranja x)\b/.test(s) ? 'Transferencia' : 'Efectivo';
 
   const propias = categorias.filter(c => c.tipo === out.tipo);
@@ -1028,10 +1031,10 @@ function pasosTour(){
   return [
     {t: '¡Bienvenido a Numa!', d: 'Te muestro en 30 segundos cómo funciona. Podés saltearlo cuando quieras.'},
     {sel: '.t-hero', t: 'Balance del mes', d: 'Lo que entró menos lo que salió este mes. La barra muestra qué parte de tus ingresos ya gastaste. Con las flechas de arriba cambiás de mes.'},
-    {sel: '.t-disp', t: 'Disponible', d: 'Cuánta plata tenés en efectivo, en el banco y en dólares, sumando todo lo que cargaste.'},
+    {sel: '.t-disp', t: 'Disponible', d: 'Cuánta plata tenés en efectivo y en el banco, sumando todo lo que cargaste.'},
     {sel: '.t-cat .donut', t: 'En qué se te va la plata', d: 'Tus gastos por categoría. Tocá una porción o una fila para ver solo esa.'},
     {sel: '.t-aho', t: 'Ahorro', d: 'Con + separás plata para ahorrar y con − la sacás. No cuenta como gasto. Tocá la tarjeta para crear varios ahorros (vacaciones, auto…) con su meta.'},
-    {sel: pc ? '.top-acc' : '.actions .in', t: 'Cargar en segundos', d: 'Tocá Ingreso o Gasto, poné el monto y listo. Tocá el $ para cargarlo en dólares. Funciona aunque no tengas señal.'},
+    {sel: pc ? '.top-acc' : '.actions .in', t: 'Cargar en segundos', d: 'Tocá Ingreso o Gasto, poné el monto y listo.' + (CON_DOLARES ? ' Tocá el $ para cargarlo en dólares.' : '') + ' Funciona aunque no tengas señal.'},
     {sel: '#estado', t: 'Todo guardado', d: 'Punto celeste: todo está guardado en tu cuenta. Naranja: hay algo esperando internet y se manda solo.'},
     {sel: pc ? '.drawer' : '.icon-btn.menu', t: 'Menú', d: 'Acá están todos tus movimientos, los gastos fijos y préstamos que se cargan solos cada mes, y Ajustes.'},
     {t: 'Anotá con Siri', d: 'En Ajustes podés instalar el atajo “Anotar en Numa” y decir “Oye Siri, anotar en Numa” para cargar sin abrir la app. Los atajos son gratis los primeros 14 días.'},
@@ -1492,7 +1495,7 @@ function abrirFormFijo(pre){
   const s = abrirSheet(`
     <h2>${pre.id ? (st.prestamo ? 'Editar préstamo' : 'Editar fijo') : (st.prestamo ? 'Nuevo préstamo' : 'Nuevo fijo')}</h2>
     <div class="seg big" id="xTipo"><button data-t="Gasto">Gasto fijo</button><button data-t="Ingreso">Ingreso fijo</button></div>
-    <label class="amount"><button type="button" class="mon" id="xMon" data-mon="1" aria-label="Cambiar moneda">$</button><input id="xMonto" inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Monto"></label>
+    <label class="amount">${CON_DOLARES ? '<button type="button" class="mon" id="xMon" data-mon="1" aria-label="Cambiar moneda">$</button>' : '<span class="mon" id="xMon" style="border-bottom:0">$</span>'}<input id="xMonto" inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Monto"></label>
     <div class="hint" id="xHint">&nbsp;</div>
     <input class="field" id="xNombre" placeholder="${st.prestamo ? 'Nombre (ej: Préstamo banco)' : 'Nombre (ej: Alquiler, Netflix, Sueldo)'}" maxlength="40" autocomplete="off" value="${esc(pre.nombre || '')}">
     <label class="check" id="xPresWrap" style="justify-content:flex-start;margin:14px 2px 0"><input type="checkbox" id="xPres" ${st.prestamo ? 'checked' : ''}> Es un préstamo o una compra en cuotas</label>
@@ -1641,7 +1644,7 @@ function abrirForm(tipo, pre){
   const st = {tipo: pre.tipo || tipo, medio: pre.medio || LS.get('numa_medio', 'Efectivo'), cat: pre.categoria || null, moneda: pre.moneda || 'ARS'};
   const s = abrirSheet(`
     <div class="seg big" id="fTipo"><button data-t="Gasto">Gasto</button><button data-t="Ingreso">Ingreso</button></div>
-    <label class="amount"><button type="button" class="mon" id="fMon" data-mon="1" aria-label="Cambiar moneda">$</button><input id="fMonto" inputmode="decimal" autocomplete="off" placeholder="0" enterkeyhint="done" aria-label="Monto"></label>
+    <label class="amount">${CON_DOLARES ? '<button type="button" class="mon" id="fMon" data-mon="1" aria-label="Cambiar moneda">$</button>' : '<span class="mon" id="fMon" style="border-bottom:0">$</span>'}<input id="fMonto" inputmode="decimal" autocomplete="off" placeholder="0" enterkeyhint="done" aria-label="Monto"></label>
     <div class="hint" id="fHint">&nbsp;</div>
     <div class="lbl2">Categoría</div><div class="chips" id="fCats"></div>
     <div class="lbl2">Medio</div>
@@ -1947,9 +1950,9 @@ function abrirAjustes(){
       </div>`}
 
     <button class="ghost" data-act="verguia">Ver la guía de bienvenida</button>
-    <div class="lbl2">Dólar para convertir</div>
+    ${CON_DOLARES ? `<div class="lbl2">Dólar para convertir</div>
     <div class="seg big">${DOLAR_TIPOS.map(([v, t]) => `<button class="${tipoDolar() === v ? 'on' : ''}" data-act="dolartipo" data-t="${v}">${t}</button>`).join('')}</div>
-    <p class="msg" style="color:var(--muted)">${cotiz() ? `Hoy: ${money(cotiz())} (venta) · actualizado ${esc(new Date(DOLAR.fecha).toLocaleString('es-AR', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'}))}` : 'Se actualiza solo cuando hay internet.'} Tocá <b>$</b> al cargar un monto para pasarlo a US$.</p>
+    <p class="msg" style="color:var(--muted)">${cotiz() ? `Hoy: ${money(cotiz())} (venta) · actualizado ${esc(new Date(DOLAR.fecha).toLocaleString('es-AR', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'}))}` : 'Se actualiza solo cuando hay internet.'} Tocá <b>$</b> al cargar un monto para pasarlo a US$.</p>` : ''}
     <div class="lbl2">Apariencia</div>
     <div class="seg big">${[['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']].map(([v, t]) =>
       `<button class="${temaActual() === v ? 'on' : ''}" data-act="tema" data-t="${v}">${t}</button>`).join('')}</div>
