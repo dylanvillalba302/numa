@@ -270,7 +270,10 @@ body.menu-open{overflow:hidden}
 .search input{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:15px}
 .resumen{display:flex;justify-content:space-between;align-items:center;padding:14px 16px}
 .resumen small{color:var(--muted);font-weight:600}
-.resumen .rs{display:flex;gap:14px;font-weight:700;font-size:14.5px}
+.resumen{gap:10px}
+.resumen .rs{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:2px 12px;font-weight:700;font-size:14.5px}
+.resumen .rs span{white-space:nowrap}
+.resumen small{white-space:nowrap}
 .diasel{display:flex;align-items:center;justify-content:center;gap:18px}
 .diasel button{width:44px;height:44px;border-radius:14px;background:var(--card);border:1px solid var(--line);font-size:22px;font-weight:600}
 .diasel b{font-size:30px;font-weight:750;min-width:60px;text-align:center}
