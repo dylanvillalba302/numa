@@ -1736,11 +1736,11 @@ function abrirAhorro(){
     <h2>Ahorro</h2>
     <div class="aho-big num">${money(t)}</div>
     <div class="aho-sub">${meta ? `${Math.round(pct)}% de ${money(meta.monto)}${meta.nombre ? ' · ' + esc(meta.nombre) : ''}${t < meta.monto ? ' · te faltan ' + money(meta.monto - t) : ' · ¡meta cumplida!'}` : 'Separado de tu disponible. No cuenta como gasto.'}</div>
-    <div class="btnrow"><button class="ghost" data-act="ahonuevo" data-t="Sacar">− Sacar</button><button class="primary" data-act="ahonuevo" data-t="Guardar" style="margin-top:0">+ Guardar</button></div>
+    <div class="btnrow"><button class="ghost" data-act="ahonuevo" data-t="Sacar">− Sacar</button><button class="primary" data-act="ahonuevo" data-t="Guardar" style="margin-top:8px;height:48px">+ Guardar</button></div>
     <div class="lbl2">Meta (opcional)</div>
     <input class="field" id="mNombre" placeholder="Para qué ahorrás (ej: Vacaciones)" maxlength="40" autocomplete="off" value="${esc(meta?.nombre || '')}">
     <label class="field" style="display:flex;align-items:center;gap:6px;margin-top:8px"><span style="color:var(--muted)">$</span><input id="mMonto" inputmode="decimal" autocomplete="off" placeholder="Cuánto querés juntar" style="flex:1;border:0;outline:0;background:transparent;color:inherit;font:inherit;width:auto!important;text-align:left" value="${meta ? esc(money(meta.monto).replace(/[^\d.,]/g, '')) : ''}"></label>
-    <div class="btnrow"><button class="ghost" id="mQuitar" ${meta ? '' : 'disabled'}>Quitar meta</button><button class="primary" id="mGuardar" style="margin-top:0">Guardar meta</button></div>
+    <div class="btnrow"><button class="ghost" id="mQuitar" ${meta ? '' : 'disabled'}>Quitar meta</button><button class="primary" id="mGuardar" style="margin-top:8px;height:48px">Guardar meta</button></div>
     <div class="lbl2">Movimientos del ahorro</div>
     <div class="card" style="padding:2px 14px;margin:0">${lista.length ? lista.map(a => `
       <div class="aho-row"><div><b class="num ${a.tipo === 'Guardar' ? 'g' : ''}">${a.tipo === 'Guardar' ? '+' : '−'}${money(a.monto)}</b>
