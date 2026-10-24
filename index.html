@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Numa">
 <meta name="theme-color" content="#0a0e15">
-<meta name="format-detection" content="telephone=no">
+<meta name="format-detection" content="telephone=no, email=no, address=no, date=no">
 <meta name="description" content="Numa: registrá tus ingresos y gastos en segundos, aunque no tengas señal.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
@@ -224,6 +224,9 @@ label.f{display:block;font-size:13px;font-weight:650;color:var(--muted);margin-t
 .detail .ic.i{background:var(--ing-bg)} .detail .ic.g{background:var(--gas-bg)}
 .detail .big{font-size:36px;font-weight:750;letter-spacing:-.03em}
 .ver{color:var(--faint);font-size:12px;text-align:center;margin-top:16px}
+/* iOS subraya solo los emails y teléfonos que detecta: se lo sacamos */
+a[x-apple-data-detectors],.dhead a,.drawer a{color:inherit!important;text-decoration:none!important;font:inherit!important}
+.mi,.mi *{text-decoration:none}
 .ver .firma{color:var(--celeste);font-weight:700}
 
 .toast{position:fixed;left:50%;top:calc(var(--safe-t) + 12px);transform:translate(-50%,calc(-100% - var(--safe-t) - 40px));visibility:hidden;z-index:60;background:var(--text);color:var(--bg);
