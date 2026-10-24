@@ -582,8 +582,8 @@ const esUSD = m => m && m.moneda === 'USD';
 const ars = m => esUSD(m) ? Number(m.monto) * cotiz() : Number(m.monto);
 const montoTxt = m => esUSD(m) ? plataUSD(Number(m.monto)) : money(Number(m.monto));
 const signedM = m => (m.tipo === 'Ingreso' ? '+' : '−') + montoTxt(m);
-/* Dólares: oculto por ahora. Poner en true para volver a mostrar el botón $ ↔ US$ y el ajuste del dólar. */
-const CON_DOLARES = false;
+/* Dólares: cada usuario los muestra u oculta desde Ajustes (ocultos de entrada) */
+let CON_DOLARES = LS.get('numa_dolares', false);
 let dolarPedido = 0;
 async function actualizarDolar(forzar){
   if (!CON_DOLARES && !(D.movimientos || []).some(esUSD)) return;
@@ -1950,6 +1950,9 @@ function abrirAjustes(){
       </div>`}
 
     <button class="ghost" data-act="verguia">Ver la guía de bienvenida</button>
+    <div class="lbl2">Dólares</div>
+    <div class="seg big"><button class="${CON_DOLARES ? '' : 'on'}" data-act="dolares" data-v="0">Ocultar</button><button class="${CON_DOLARES ? 'on' : ''}" data-act="dolares" data-v="1">Mostrar</button></div>
+    <p class="msg" style="color:var(--muted)">${CON_DOLARES ? 'Podés cargar montos en US$ tocando el $.' : 'Activalo si querés cargar gastos o ingresos en dólares.'}</p>
     ${CON_DOLARES ? `<div class="lbl2">Dólar para convertir</div>
     <div class="seg big">${DOLAR_TIPOS.map(([v, t]) => `<button class="${tipoDolar() === v ? 'on' : ''}" data-act="dolartipo" data-t="${v}">${t}</button>`).join('')}</div>
     <p class="msg" style="color:var(--muted)">${cotiz() ? `Hoy: ${money(cotiz())} (venta) · actualizado ${esc(new Date(DOLAR.fecha).toLocaleString('es-AR', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'}))}` : 'Se actualiza solo cuando hay internet.'} Tocá <b>$</b> al cargar un monto para pasarlo a US$.</p>` : ''}
@@ -2034,6 +2037,7 @@ document.addEventListener('click', e => {
   else if (a === 'ajustes') { cerrarMenu(); abrirAjustes(); }
   else if (a === 'menu') abrirMenu();
   else if (a === 'verguia') { cerrarSheet(); cerrarMenu && cerrarMenu(); ui.vista = 'panel'; LS.set('numa_tour_v1', false); tourActivo = false; render(); }
+  else if (a === 'dolares') { CON_DOLARES = b.dataset.v === '1'; LS.set('numa_dolares', CON_DOLARES); if (CON_DOLARES) actualizarDolar(true).then(() => abrirAjustes()); abrirAjustes(); render(); }
   else if (a === 'dolartipo') { LS.set('numa_dolar_tipo', b.dataset.t); DOLAR = null; actualizarDolar(true).then(() => abrirAjustes()); abrirAjustes(); }
   else if (a === 'tema') { aplicarTema(b.dataset.t); abrirAjustes(); }
   else if (a === 'cerrarmenu') cerrarMenu();
