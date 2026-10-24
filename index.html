@@ -224,6 +224,8 @@ label.f{display:block;font-size:13px;font-weight:650;color:var(--muted);margin-t
 .detail .ic.i{background:var(--ing-bg)} .detail .ic.g{background:var(--gas-bg)}
 .detail .big{font-size:36px;font-weight:750;letter-spacing:-.03em}
 .ver{color:var(--faint);font-size:12px;text-align:center;margin-top:16px}
+.linkbtn{border:0;background:none;padding:0;color:var(--accent);font:inherit;font-weight:600;cursor:pointer}
+.linkbtn.armed{color:var(--gas)}
 /* iOS subraya solo los emails y teléfonos que detecta: se lo sacamos */
 a[x-apple-data-detectors],.dhead a,.drawer a{color:inherit!important;text-decoration:none!important;font:inherit!important}
 .mi,.mi *{text-decoration:none}
@@ -1347,10 +1349,10 @@ function renderPanel(){
     <div class="card t-disp"><h3>Disponible</h3>
       <div class="wallets">${MEDIOS.map(([m, ic]) => `<div class="wallet"><span class="ic">${ico(ic)}</span><div><small>${m}</small>
         <b class="num ${s[m] < 0 ? 'neg' : ''}" data-cuenta="${s[m] || 0}">${s[m] < 0 ? '−' : ''}${money(Math.abs(s[m] || 0))}</b></div></div>`).join('')}
-        ${s.hayUSD ? `<div class="wallet"><span class="ic">${ico('dolar')}</span><div><small>Dólares</small>
+        ${s.hayUSD && CON_DOLARES ? `<div class="wallet"><span class="ic">${ico('dolar')}</span><div><small>Dólares</small>
           <b class="num ${s.USD < 0 ? 'neg' : ''}">${s.USD < 0 ? '−' : ''}${plataUSD(Math.abs(s.USD))}</b>
           ${cotiz() ? `<small class="eq">≈ ${s.USD < 0 ? '−' : ''}${money(Math.abs(s.USD) * cotiz())}</small>` : ''}</div></div>` : ''}</div>
-      ${s.hayUSD && cotiz() ? `<p class="cnote">Dólar ${esc((DOLAR_TIPOS.find(t => t[0] === tipoDolar()) || [,''])[1].toLowerCase())}: ${money(cotiz())} · los totales en US$ se cuentan en pesos a ese valor.</p>` : ''}
+      ${s.hayUSD && CON_DOLARES && cotiz() ? `<p class="cnote">Dólar ${esc((DOLAR_TIPOS.find(t => t[0] === tipoDolar()) || [,''])[1].toLowerCase())}: ${money(cotiz())} · los totales en US$ se cuentan en pesos a ese valor.</p>` : ''}
     </div>
     <div class="card t-cat"><h3>Por categoría
         <span class="seg"><button class="${ui.catTipo === 'Gasto' ? 'on' : ''}" data-act="cattipo" data-t="Gasto">Gastos</button><button class="${ui.catTipo === 'Ingreso' ? 'on' : ''}" data-act="cattipo" data-t="Ingreso">Ingresos</button></span></h3>
@@ -1947,9 +1949,7 @@ function abrirAjustes(){
 
         <div style="font-size:12.5px;color:var(--muted);margin-top:10px"><b>Botones en el Centro de control</b> (iOS 18 o posterior): deslizá desde arriba a la derecha, tocá <b>+</b> &gt; <b>Agregar un control</b> &gt; <b>Atajo</b> y elegí “Ingreso”. Repetí con “Gasto”.<br><b>Sin internet:</b> lo que anotes queda en el iPhone y se manda solo la próxima vez que uses un atajo con conexión.</div>
         <button class="ghost" data-act="atajo" data-f="Sincronizar Numa.shortcut">Instalar “Sincronizar Numa” (opcional)</button>
-        <div class="lbl2" style="margin-top:16px">Tu clave personal</div>
-        <div class="key" id="kClave">${p.clave_atajo ? '•••• •••• •••• ' + esc(p.clave_atajo.slice(-4)) : 'Sincronizá para ver tu clave'}</div>
-        <div class="btnrow"><button class="ghost" data-act="copiarclave">Copiar clave</button><button class="ghost" id="kNueva">Generar nueva</button></div>
+        <p class="msg" style="color:var(--muted);margin-top:14px;font-size:12.5px">¿Alguien más usó tus atajos? <button class="linkbtn" id="kNueva">Desconectarlos de todos los teléfonos</button></p>
       </div>`}
 
     <button class="ghost" data-act="verguia">Ver la guía de bienvenida</button>
@@ -1971,12 +1971,12 @@ function abrirAjustes(){
     <p class="ver">Creado por <b class="firma">Dylan Villalba</b></p>`);
 
   const nueva = $('#kNueva', s);
-  if (nueva) confirmarConDobleToque(nueva, 'Tocá de nuevo', async () => {
+  if (nueva) confirmarConDobleToque(nueva, 'Tocá de nuevo para confirmar', async () => {
     if (!navigator.onLine) return toast('Necesitás conexión');
     const {data, error} = await sb.rpc('numa_nueva_clave');
     if (error) return toast('No se pudo: ' + error.message);
     D.perfil = {...(D.perfil || {}), clave_atajo: data}; guardar();
-    await copiar(data); toast('✓ Clave nueva copiada. Reinstalá el atajo.'); abrirAjustes();
+    toast('✓ Listo. Tocá “Conectar atajos” en tus teléfonos.'); abrirAjustes();
   });
   const borrar = $('#kBorrar', s);
   if (borrar) confirmarConDobleToque(borrar, 'Tocá de nuevo: se borra todo', async () => {
