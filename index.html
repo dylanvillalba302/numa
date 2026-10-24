@@ -555,6 +555,27 @@ function estiloCat(nombre, iconoGuardado){
   let h = 0; for (const ch of k) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return {icono: ICONS[iconoGuardado] ? iconoGuardado : 'puntos', color: PALETA_EXTRA[h % PALETA_EXTRA.length]};
 }
+/** Si eligió "Otros" y escribió qué es, crea esa categoría (queda para la próxima) */
+function catElegida(st, s, p){
+  const el = s.querySelector('#' + p + 'CatOtra');
+  const txt = st.cat === 'Otros' && el ? el.value : '';
+  return (txt.trim() && crearCategoria(st.tipo, txt)) || st.cat || 'Otros';
+}
+function crearCategoria(tipo, nombre){
+  nombre = String(nombre || '').trim().replace(/\s+/g, ' ').slice(0, 40);
+  if (!nombre) return null;
+  nombre = nombre.charAt(0).toUpperCase() + nombre.slice(1);
+  const k = x => sinAcentos(x).toLowerCase();
+  const ya = cats().find(c => c.tipo === tipo && k(c.nombre) === k(nombre));
+  if (ya) return ya.nombre;
+  const l = cats().map(c => ({...c}));
+  const item = {tipo, nombre, icono: 'puntos', orden: 50};
+  const i = l.findIndex(c => c.tipo === tipo && c.nombre === 'Otros');
+  l.splice(i >= 0 ? i : l.length, 0, item);
+  D.categorias = l;
+  D.queue.push({op: 'cat', item: {id: tipo + ':' + nombre, ...item}});
+  return nombre;
+}
 function catIco(nombre, tipo){
   const c = cats().find(x => x.nombre === nombre && x.tipo === tipo) || cats().find(x => x.nombre === nombre);
   const e = estiloCat(nombre, c && c.icono);
@@ -885,6 +906,11 @@ async function sincronizar(manual){
     const frd = enviados.filter(o => o.op === 'frascodel').map(o => o.id);
     if (frd.length) {
       const {error} = await sb.from('ahorro_frascos').delete().in('id', frd);
+      if (error) throw error;
+    }
+    const cs = enviados.filter(o => o.op === 'cat').map(o => ({tipo: o.item.tipo, nombre: o.item.nombre, icono: 'puntos', orden: 50}));
+    if (cs.length) {
+      const {error} = await sb.from('categorias').upsert(cs, {onConflict: 'user_id,tipo,nombre', ignoreDuplicates: true});
       if (error) throw error;
     }
     const k = new Set(enviados.map(keyOp));
@@ -1511,7 +1537,7 @@ function abrirFormFijo(pre){
       <div class="diasel"><button type="button" data-p="-1" aria-label="Una pagada menos">−</button><b id="xP" class="num"></b><button type="button" data-p="1" aria-label="Una pagada más">+</button></div>
       <p class="msg" id="xResumen" style="text-align:center;color:var(--muted)"></p>
     </div>
-    <div class="lbl2">Categoría</div><div class="chips" id="xCats"></div>
+    <div class="lbl2">Categoría</div><div class="chips" id="xCats"></div><input class="field" id="xCatOtra" placeholder="¿Qué es? Escribilo y queda como categoría nueva" maxlength="40" autocomplete="off" enterkeyhint="done" style="display:none;margin-top:8px">
     <div class="lbl2">Medio</div>
     <div class="seg big" id="xMedio">${MEDIOS.map(([m, ic]) => `<button data-m="${m}">${ico(ic)} ${m}</button>`).join('')}</div>
     <div class="lbl2">Día del mes en que se carga</div>
@@ -1534,6 +1560,7 @@ function abrirFormFijo(pre){
     if (!lista.find(c => c.nombre === st.cat)) st.cat = lista[0]?.nombre || 'Otros';
     $('#xCats', s).innerHTML = lista.map(c =>
       `<button type="button" class="chip ${c.nombre === st.cat ? 'on' : ''}" data-cat="${esc(c.nombre)}" style="--c:${estiloCat(c.nombre, c.icono).color}">${ico(estiloCat(c.nombre, c.icono).icono)}${esc(c.nombre)}</button>`).join('');
+    $('#xCatOtra', s).style.display = st.cat === 'Otros' ? '' : 'none';
     $('#xDia', s).textContent = dia;
     $('#xMon', s).textContent = st.moneda === 'USD' ? 'US$' : '$'; $('#xMon', s).classList.toggle('usd', st.moneda === 'USD');
     const pres = st.prestamo && st.tipo === 'Gasto';
@@ -1551,7 +1578,7 @@ function abrirFormFijo(pre){
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.t) { st.tipo = b.dataset.t; pintar(); }
     else if (b.dataset.m) { st.medio = b.dataset.m; pintar(); }
-    else if (b.dataset.cat !== undefined) { st.cat = b.dataset.cat; pintar(); }
+    else if (b.dataset.cat !== undefined) { st.cat = b.dataset.cat; pintar(); if (st.cat === 'Otros') { const o = s.querySelector('[id$="CatOtra"]'); if (o) o.focus(); } }
     else if (b.dataset.d) { dia = Math.min(31, Math.max(1, dia + Number(b.dataset.d))); pintar(); }
     else if (b.dataset.mon) { st.moneda = st.moneda === 'USD' ? 'ARS' : 'USD'; pintar(); }
     else if (b.dataset.q) { st.cuotas = Math.min(120, Math.max(2, st.cuotas + Number(b.dataset.q))); pintar(); }
@@ -1581,7 +1608,7 @@ function abrirFormFijo(pre){
     const hoy = new Date();
     const este = $('#xEste', s);
     const desdeEste = !este || este.checked || dia > hoy.getDate();
-    const f = {id: pre.id || 'fx-' + uid().slice(4), nombre, tipo: st.tipo, monto: Math.round(n * 100) / 100, moneda: st.moneda, categoria: st.cat, medio: st.medio, dia, activo: true,
+    const f = {id: pre.id || 'fx-' + uid().slice(4), nombre, tipo: st.tipo, monto: Math.round(n * 100) / 100, moneda: st.moneda, categoria: catElegida(st, s, 'x'), medio: st.medio, dia, activo: true,
       ultimo_mes: pre.id ? pre.ultimo_mes : mesClave(new Date(hoy.getFullYear(), hoy.getMonth() - (desdeEste ? 1 : 0), 1))};
     if (st.prestamo && st.tipo === 'Gasto') { f.cuotas = st.cuotas; f.cuotas_pagadas = st.pagadas; f.activo = st.pagadas < st.cuotas; }
     else { f.cuotas = null; f.cuotas_pagadas = 0; }
@@ -1651,7 +1678,7 @@ function abrirForm(tipo, pre){
     <div class="seg big" id="fTipo"><button data-t="Gasto">Gasto</button><button data-t="Ingreso">Ingreso</button></div>
     <label class="amount">${CON_DOLARES ? '<button type="button" class="mon" id="fMon" data-mon="1" aria-label="Cambiar moneda">$</button>' : '<span class="mon" id="fMon" style="border-bottom:0">$</span>'}<input id="fMonto" inputmode="decimal" autocomplete="off" placeholder="0" enterkeyhint="done" aria-label="Monto"></label>
     <div class="hint" id="fHint">&nbsp;</div>
-    <div class="lbl2">Categoría</div><div class="chips" id="fCats"></div>
+    <div class="lbl2">Categoría</div><div class="chips" id="fCats"></div><input class="field" id="fCatOtra" placeholder="¿Qué es? Escribilo y queda como categoría nueva" maxlength="40" autocomplete="off" enterkeyhint="done" style="display:none;margin-top:8px">
     <div class="lbl2">Medio</div>
     <div class="seg big" id="fMedio">${MEDIOS.map(([m, ic]) => `<button data-m="${m}">${ico(ic)} ${m}</button>`).join('')}</div>
     <div class="lbl2">Detalle</div>
@@ -1672,6 +1699,7 @@ function abrirForm(tipo, pre){
     if (!lista.find(c => c.nombre === st.cat)) st.cat = lista[0]?.nombre || 'Otros';
     $('#fCats', s).innerHTML = lista.map(c =>
       `<button type="button" class="chip ${c.nombre === st.cat ? 'on' : ''}" data-cat="${esc(c.nombre)}" style="--c:${estiloCat(c.nombre, c.icono).color}">${ico(estiloCat(c.nombre, c.icono).icono)}${esc(c.nombre)}</button>`).join('');
+    $('#fCatOtra', s).style.display = st.cat === 'Otros' ? '' : 'none';
     $('#fGuardar', s).textContent = st.tipo === 'Gasto' ? 'Guardar gasto' : 'Guardar ingreso';
     $('#fMon', s).textContent = st.moneda === 'USD' ? 'US$' : '$';
     $('#fMon', s).classList.toggle('usd', st.moneda === 'USD');
@@ -1683,7 +1711,7 @@ function abrirForm(tipo, pre){
     if (b.dataset.t) { st.tipo = b.dataset.t; pintar(); }
     else if (b.dataset.m) { st.medio = b.dataset.m; LS.set('numa_medio', st.medio); pintar(); }
     else if (b.dataset.mon) { st.moneda = st.moneda === 'USD' ? 'ARS' : 'USD'; pintar(); monto.focus(); }
-    else if (b.dataset.cat !== undefined) { st.cat = b.dataset.cat; pintar(); }
+    else if (b.dataset.cat !== undefined) { st.cat = b.dataset.cat; pintar(); if (st.cat === 'Otros') { const o = s.querySelector('[id$="CatOtra"]'); if (o) o.focus(); } }
     else if (b.id === 'fGuardar') guardarMovimiento();
   };
   monto.addEventListener('input', e => {
@@ -1707,7 +1735,7 @@ function abrirForm(tipo, pre){
     }
     const f = fecha.value ? new Date(fecha.value) : new Date();
     const item = {id: pre.id || uid(), fecha: (isNaN(f) ? new Date() : f).toISOString(), tipo: st.tipo,
-      monto: Math.round(n * 100) / 100, moneda: st.moneda, categoria: st.cat || 'Otros', medio: st.medio,
+      monto: Math.round(n * 100) / 100, moneda: st.moneda, categoria: catElegida(st, s, 'f'), medio: st.medio,
       nota: $('#fNota', s).value.trim(), origen: pre.id ? 'Atajo' : 'App'};
     D.queue.push({op:'add', item});
     if (pre.id) D.revisar = D.revisar.filter(r => r.id !== pre.id);
