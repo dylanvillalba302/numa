@@ -340,6 +340,24 @@ body.menu-open{overflow:hidden}
 .t-aho .mt{display:flex;align-items:center;gap:8px;margin-top:9px;font-size:11.5px;color:var(--muted)}
 .t-aho .mt .bar{flex:1;height:5px;border-radius:99px;background:var(--bar-muted);overflow:hidden}
 .t-aho .mt .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--brand),var(--celeste))}
+.t-aho .frs{margin-top:9px;display:flex;flex-direction:column;gap:6px}
+.t-aho .fr{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+.t-aho .fr .n{flex:0 1 auto;min-width:0;max-width:42%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-aho .fr .bar{flex:1;height:5px;border-radius:99px;background:var(--bar-muted);overflow:hidden}
+.t-aho .fr .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--brand),var(--celeste))}
+.t-aho .fr .sp{flex:1}
+.t-aho .fr b{color:var(--text);font-size:12.5px;white-space:nowrap}
+.entrada .t-aho .fr .bar i{transform-origin:left;animation:crecerX 1s .5s cubic-bezier(.2,.8,.2,1) both}
+.fr-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.fr-item:last-child{border-bottom:0}
+.fr-item .ic{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:rgba(56,189,248,.14);color:var(--celeste);flex:none}
+.fr-item .ic .i{width:18px;height:18px}
+.fr-item > div{flex:1;min-width:0}
+.fr-item .top{display:flex;justify-content:space-between;gap:8px;font-weight:650}
+.fr-item small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+.fr-item .bar{height:5px;border-radius:99px;background:var(--bar-muted);overflow:hidden;margin-top:6px}
+.fr-item .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),var(--celeste))}
+.volver{border:0;background:none;color:var(--accent);font:600 14px/1 inherit;padding:4px 0 10px;cursor:pointer}
 .entrada .t-aho .mt .bar i{transform-origin:left;animation:crecerX 1s .5s cubic-bezier(.2,.8,.2,1) both}
 .aho-big{text-align:center;font-size:34px;font-weight:750;letter-spacing:-.03em;margin:6px 0 2px}
 .aho-sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:14px}
@@ -708,7 +726,7 @@ let syncing = false, lastError = null;
 let animarEntrada = true;   // movimiento de bienvenida, solo la primera vez que se ve el panel
 let animHasta = 0, renderPend = null;
 
-function vacio(){ return {movimientos:[], categorias:null, perfil:null, queue:[], revisar:[], fijos:[], ahorros:[], meta:null, actualizado:null}; }
+function vacio(){ return {movimientos:[], categorias:null, perfil:null, queue:[], revisar:[], fijos:[], ahorros:[], frascos:[], actualizado:null}; }
 function clave(){ return 'numa_' + (modo === 'demo' ? 'demo' : (user && user.id)); }
 function cargarLocal(){ D = Object.assign(vacio(), LS.get(clave(), {})); }
 function guardar(){ if (modo === 'demo' || user) LS.set(clave(), D); }
@@ -743,12 +761,21 @@ function ahorros(){
     .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 }
 const totalAhorro = () => Math.round(ahorros().reduce((t, a) => t + (a.tipo === 'Guardar' ? 1 : -1) * Number(a.monto), 0) * 100) / 100;
-function metaAhorro(){
-  const q = D.queue.filter(o => o.op === 'meta').pop();
-  const m = q ? q.item : D.meta;
-  return m && Number(m.monto) > 0 ? {nombre: m.nombre || '', monto: Number(m.monto)} : null;
+const saldoFrasco = id => Math.round(ahorros().filter(a => (a.frasco || 'general') === id)
+  .reduce((t, a) => t + (a.tipo === 'Guardar' ? 1 : -1) * Number(a.monto), 0) * 100) / 100;
+/** Ahorros separados (Vacaciones, Auto…). "General" existe solo si no hay otros o si tiene plata. */
+function frascos(){
+  const dels = new Set(D.queue.filter(o => o.op === 'frascodel').map(o => o.id));
+  const pend = D.queue.filter(o => o.op === 'frasco').map(o => o.item);
+  const ids = new Set(pend.map(f => f.id));
+  let l = (D.frascos || []).filter(f => !ids.has(f.id)).concat(pend).filter(f => !dels.has(f.id))
+    .map(f => ({...f, meta: Number(f.meta) > 0 ? Number(f.meta) : null}))
+    .sort((a, b) => (a.id === 'general' ? -1 : b.id === 'general' ? 1 : String(a.creado || '').localeCompare(String(b.creado || ''))));
+  if (!l.some(f => f.id === 'general') && (!l.length || saldoFrasco('general') !== 0))
+    l.unshift({id: 'general', nombre: 'General', meta: null, virtual: true});
+  return l;
 }
-
+const frascoPorId = id => frascos().find(f => f.id === id);
 
 /* =====================================================================
    Ingresos y gastos fijos: se cargan solos cada mes en el día elegido
@@ -831,7 +858,7 @@ async function sincronizar(manual){
     }
     const ah = enviados.filter(o => o.op === 'aho').map(o => {
       const a = o.item;
-      return {id: a.id, fecha: a.fecha, tipo: a.tipo, monto: a.monto, medio: a.medio, nota: a.nota || ''};
+      return {id: a.id, fecha: a.fecha, tipo: a.tipo, monto: a.monto, medio: a.medio, nota: a.nota || '', frasco: a.frasco || 'general'};
     });
     if (ah.length) {
       const {error} = await sb.from('ahorros').upsert(ah, {onConflict: 'user_id,id', ignoreDuplicates: true});
@@ -842,9 +869,14 @@ async function sincronizar(manual){
       const {error} = await sb.from('ahorros').delete().in('id', ahd);
       if (error) throw error;
     }
-    const mt = enviados.filter(o => o.op === 'meta').pop();
-    if (mt) {
-      const {error} = await sb.from('ahorro_meta').upsert({nombre: mt.item.nombre || '', monto: Number(mt.item.monto) > 0 ? mt.item.monto : null, actualizado: new Date().toISOString()}, {onConflict: 'user_id'});
+    const fr = enviados.filter(o => o.op === 'frasco').map(o => ({id: o.item.id, nombre: o.item.nombre, meta: Number(o.item.meta) > 0 ? o.item.meta : null}));
+    if (fr.length) {
+      const {error} = await sb.from('ahorro_frascos').upsert(fr, {onConflict: 'user_id,id'});
+      if (error) throw error;
+    }
+    const frd = enviados.filter(o => o.op === 'frascodel').map(o => o.id);
+    if (frd.length) {
+      const {error} = await sb.from('ahorro_frascos').delete().in('id', frd);
       if (error) throw error;
     }
     const k = new Set(enviados.map(keyOp));
@@ -897,13 +929,13 @@ async function sincronizar(manual){
     D.fijos = fj.data.map(f => ({...f, monto: Number(f.monto)})).filter(f => !pendientes.has(f.id))
       .concat((D.fijos || []).filter(f => pendientes.has(f.id) && !D.queue.some(o => o.op === 'fijodel' && o.id === f.id)));
     const [ahs, mts] = await Promise.all([
-      sb.from('ahorros').select('id, fecha, tipo, monto, medio, nota').order('fecha', {ascending: false}).limit(10000),
-      sb.from('ahorro_meta').select('nombre, monto').maybeSingle(),
+      sb.from('ahorros').select('id, fecha, tipo, monto, medio, nota, frasco').order('fecha', {ascending: false}).limit(10000),
+      sb.from('ahorro_frascos').select('id, nombre, meta, creado'),
     ]);
     if (ahs.error) throw ahs.error;
     if (mts.error) throw mts.error;
     D.ahorros = ahs.data.map(a => ({...a, monto: Number(a.monto)}));
-    D.meta = mts.data ? {nombre: mts.data.nombre, monto: Number(mts.data.monto) || null} : null;
+    D.frascos = mts.data.map(f => ({...f, meta: Number(f.meta) || null}));
     if (generarFijos()) setTimeout(() => sincronizar(), 300);
     D.actualizado = new Date().toISOString();
     lastError = null; guardar();
@@ -960,7 +992,8 @@ function aplicarDemo(){
     else if (o.op === 'del') D.movimientos = D.movimientos.filter(m => m.id !== o.id);
     else if (o.op === 'aho') (D.ahorros = D.ahorros || []).push(o.item);
     else if (o.op === 'ahodel') D.ahorros = (D.ahorros || []).filter(a => a.id !== o.id);
-    else if (o.op === 'meta') D.meta = o.item;
+    else if (o.op === 'frasco') D.frascos = (D.frascos || []).filter(f => f.id !== o.item.id).concat([o.item]);
+    else if (o.op === 'frascodel') D.frascos = (D.frascos || []).filter(f => f.id !== o.id);
   });
   D.queue = []; guardar();
 }
@@ -997,7 +1030,7 @@ function pasosTour(){
     {sel: '.t-hero', t: 'Balance del mes', d: 'Lo que entró menos lo que salió este mes. La barra muestra qué parte de tus ingresos ya gastaste. Con las flechas de arriba cambiás de mes.'},
     {sel: '.t-disp', t: 'Disponible', d: 'Cuánta plata tenés en efectivo, en el banco y en dólares, sumando todo lo que cargaste.'},
     {sel: '.t-cat .donut', t: 'En qué se te va la plata', d: 'Tus gastos por categoría. Tocá una porción o una fila para ver solo esa.'},
-    {sel: '.t-aho', t: 'Ahorro', d: 'Con + separás plata para ahorrar y con − la sacás. No cuenta como gasto. Tocá la tarjeta para ponerle una meta.'},
+    {sel: '.t-aho', t: 'Ahorro', d: 'Con + separás plata para ahorrar y con − la sacás. No cuenta como gasto. Tocá la tarjeta para crear varios ahorros (vacaciones, auto…) con su meta.'},
     {sel: pc ? '.top-acc' : '.actions .in', t: 'Cargar en segundos', d: 'Tocá Ingreso o Gasto, poné el monto y listo. Tocá el $ para cargarlo en dólares. Funciona aunque no tengas señal.'},
     {sel: '#estado', t: 'Todo guardado', d: 'Punto celeste: todo está guardado en tu cuenta. Naranja: hay algo esperando internet y se manda solo.'},
     {sel: pc ? '.drawer' : '.icon-btn.menu', t: 'Menú', d: 'Acá están todos tus movimientos, los gastos fijos y préstamos que se cargan solos cada mes, y Ajustes.'},
@@ -1212,14 +1245,18 @@ function graficoCategorias(arr, tot){
 
 
 function tarjetaAhorro(){
-  const t = totalAhorro(), meta = metaAhorro();
-  const pct = meta ? Math.max(0, Math.min(100, t / meta.monto * 100)) : 0;
+  const t = totalAhorro(), fs = frascos();
+  const detalle = fs.length > 1 || fs.some(f => f.meta);
+  const fila = f => {
+    const v = saldoFrasco(f.id), p = f.meta ? Math.max(0, Math.min(100, v / f.meta * 100)) : 0;
+    return `<div class="fr"><span class="n">${esc(f.nombre)}</span>${f.meta ? `<div class="bar"><i style="width:${p.toFixed(1)}%"></i></div>` : '<span class="sp"></span>'}<b class="num">${money(v)}</b></div>`;
+  };
   return `<div class="card t-aho" data-act="ahover">
     <div class="r"><span class="ic">${ico('alcancia')}</span>
       <div class="tx"><small>Ahorro</small><b class="num" data-cuenta="${t}">${money(t)}</b></div>
       <button class="bt" data-act="ahonuevo" data-t="Sacar" aria-label="Sacar del ahorro">−</button>
       <button class="bt" data-act="ahonuevo" data-t="Guardar" aria-label="Guardar en el ahorro">+</button></div>
-    ${meta ? `<div class="mt"><span>${esc(meta.nombre || 'Meta')}</span><div class="bar"><i style="width:${pct.toFixed(1)}%"></i></div><span>${Math.round(pct)}%</span></div>` : ''}
+    ${detalle ? `<div class="frs">${fs.slice(0, 4).map(fila).join('')}${fs.length > 4 ? `<div class="fr"><span class="n">y ${fs.length - 4} más</span></div>` : ''}</div>` : ''}
   </div>`;
 }
 
@@ -1694,74 +1731,145 @@ function campoMonto(input, hint){
   ancho();
   return () => parseFloat((input.value || '').replace(/\./g, '').replace(',', '.'));
 }
-function abrirAhorroForm(tipo){
-  const guardarT = tipo !== 'Sacar', disp = totalAhorro();
-  if (!guardarT && disp <= 0) { toast('Todavía no tenés plata ahorrada'); return; }
-  const st = {medio: LS.get('numa_medio', 'Efectivo')};
+function nuevoIdFrasco(){ return 'fr-' + uid(); }
+function abrirAhorroForm(tipo, frascoId){
+  const guardarT = tipo !== 'Sacar';
+  const conPlata = frascos().filter(f => saldoFrasco(f.id) > 0);
+  if (!guardarT && !conPlata.length) { toast('Todavía no tenés plata ahorrada'); return; }
+  const ult = LS.get('numa_frasco', 'general');
+  const opciones = () => guardarT ? frascos() : conPlata;
+  const st = {medio: LS.get('numa_medio', 'Efectivo'),
+    fr: frascoId || (opciones().some(f => f.id === ult) ? ult : opciones()[0].id), nuevo: false};
   const s = abrirSheet(`
     <h2>${guardarT ? 'Guardar en el ahorro' : 'Sacar del ahorro'}</h2>
     <label class="amount"><span>$</span><input id="aMonto" inputmode="decimal" autocomplete="off" placeholder="0" enterkeyhint="done" aria-label="Monto"></label>
-    <div class="hint" id="aHint">${guardarT ? 'Se separa de tu disponible. No cuenta como gasto.' : 'Tenés ' + money(disp) + ' ahorrado'}</div>
-    <div class="lbl2">${guardarT ? '¿De dónde sale?' : '¿A dónde vuelve?'}</div>
+    <div class="hint" id="aHint">&nbsp;</div>
+    <div class="lbl2">${guardarT ? '¿Para qué?' : '¿De cuál?'}</div>
+    <div class="chips" id="aFr"></div>
+    <input class="field" id="aNuevo" placeholder="Nombre del nuevo ahorro (ej: Vacaciones)" maxlength="40" autocomplete="off" style="display:none;margin-top:8px">
+    <div class="lbl2">${guardarT ? '¿De dónde sale la plata?' : '¿A dónde vuelve?'}</div>
     <div class="seg big" id="aMedio">${MEDIOS.map(([m, ic]) => `<button data-m="${m}">${ico(ic)} ${m}</button>`).join('')}</div>
     <input class="field" id="aNota" placeholder="Nota (opcional)" maxlength="120" autocomplete="off" enterkeyhint="done" style="margin-top:12px">
     <button class="primary" id="aGuardar" style="margin-top:16px">${guardarT ? 'Guardar' : 'Sacar'}</button>`);
-  const monto = $('#aMonto', s), hint = $('#aHint', s);
+  const monto = $('#aMonto', s), hint = $('#aHint', s), nuevo = $('#aNuevo', s);
   const leer = campoMonto(monto, hint);
-  const pintar = () => s.querySelectorAll('#aMedio button').forEach(b => b.classList.toggle('on', b.dataset.m === st.medio));
+  const pintar = () => {
+    s.querySelectorAll('#aMedio button').forEach(b => b.classList.toggle('on', b.dataset.m === st.medio));
+    $('#aFr', s).innerHTML = opciones().map(f => `<button type="button" class="chip ${!st.nuevo && f.id === st.fr ? 'on' : ''}" data-fr="${esc(f.id)}" style="--c:var(--celeste)">${ico('alcancia')}${esc(f.nombre)}</button>`).join('')
+      + (guardarT ? `<button type="button" class="chip ${st.nuevo ? 'on' : ''}" data-fr="__nuevo" style="--c:var(--celeste)">＋ Nuevo</button>` : '');
+    nuevo.style.display = st.nuevo ? '' : 'none';
+    hint.textContent = guardarT ? 'Se separa de tu disponible. No cuenta como gasto.' : `Tenés ${money(saldoFrasco(st.fr))} en ${frascoPorId(st.fr)?.nombre || 'este ahorro'}`;
+  };
   pintar();
   s.onclick = e => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.m) { st.medio = b.dataset.m; pintar(); }
+    else if (b.dataset.fr) { if (b.dataset.fr === '__nuevo') { st.nuevo = true; pintar(); nuevo.focus(); } else { st.nuevo = false; st.fr = b.dataset.fr; pintar(); } }
     else if (b.id === 'aGuardar') {
       const n = leer();
-      const mal = msg => { monto.classList.remove('shake'); void monto.offsetWidth; monto.classList.add('shake'); hint.textContent = msg; monto.focus(); };
+      const mal = (msg, el) => { el = el || monto; el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); hint.textContent = msg; el.focus(); };
       if (!(n > 0)) return mal('Ingresá un monto');
-      if (!guardarT && n > disp + 0.001) return mal('Tenés ' + money(disp) + ' ahorrado');
+      let fr = st.fr;
+      if (st.nuevo) {
+        const nom = nuevo.value.trim();
+        if (!nom) return mal('Ponele un nombre al ahorro', nuevo);
+        fr = nuevoIdFrasco();
+        D.queue.push({op: 'frasco', item: {id: fr, nombre: nom, meta: null, creado: new Date().toISOString()}});
+      } else if (frascoPorId(fr)?.virtual) {
+        D.queue.push({op: 'frasco', item: {id: 'general', nombre: 'General', meta: null, creado: new Date(0).toISOString()}});
+      }
+      const disp = saldoFrasco(fr);
+      if (!guardarT && n > disp + 0.001) return mal(`Tenés ${money(disp)} en ese ahorro`);
       const item = {id: uid(), fecha: new Date().toISOString(), tipo: guardarT ? 'Guardar' : 'Sacar',
-        monto: Math.round(n * 100) / 100, medio: st.medio, nota: $('#aNota', s).value.trim()};
+        monto: Math.round(n * 100) / 100, medio: st.medio, nota: $('#aNota', s).value.trim(), frasco: fr};
       D.queue.push({op: 'aho', item});
+      LS.set('numa_frasco', fr);
       if (modo === 'demo') aplicarDemo();
       guardar(); cerrarSheet(); render();
-      toast(guardarT ? `✓ ${money(item.monto)} al ahorro` : `✓ Sacaste ${money(item.monto)} del ahorro`);
+      const nom = frascoPorId(fr)?.nombre || '';
+      toast(guardarT ? `✓ ${money(item.monto)} a ${nom}` : `✓ Sacaste ${money(item.monto)} de ${nom}`);
       sincronizar();
     }
   };
   monto.focus();
 }
+function frascoFila(f){
+  const v = saldoFrasco(f.id), p = f.meta ? Math.max(0, Math.min(100, v / f.meta * 100)) : 0;
+  return `<div class="fr-item" data-act="frver" data-f="${esc(f.id)}"><span class="ic">${ico('alcancia')}</span><div>
+    <div class="top"><span>${esc(f.nombre)}</span><span class="num">${money(v)}</span></div>
+    ${f.meta ? `<div class="bar"><i style="width:${p.toFixed(1)}%"></i></div><small>${Math.round(p)}% de ${money(f.meta)}${v >= f.meta ? ' · ¡meta cumplida!' : ''}</small>` : '<small>Sin meta</small>'}</div></div>`;
+}
 function abrirAhorro(){
-  const t = totalAhorro(), meta = metaAhorro(), lista = ahorros().slice(0, 60);
-  const pct = meta ? Math.max(0, Math.min(100, t / meta.monto * 100)) : 0;
-  const s = abrirSheet(`
+  const fs = frascos();
+  abrirSheet(`
     <h2>Ahorro</h2>
-    <div class="aho-big num">${money(t)}</div>
-    <div class="aho-sub">${meta ? `${Math.round(pct)}% de ${money(meta.monto)}${meta.nombre ? ' · ' + esc(meta.nombre) : ''}${t < meta.monto ? ' · te faltan ' + money(meta.monto - t) : ' · ¡meta cumplida!'}` : 'Separado de tu disponible. No cuenta como gasto.'}</div>
+    <div class="aho-big num">${money(totalAhorro())}</div>
+    <div class="aho-sub">En total, separado de tu disponible. No cuenta como gasto.</div>
     <div class="btnrow"><button class="ghost" data-act="ahonuevo" data-t="Sacar">− Sacar</button><button class="primary" data-act="ahonuevo" data-t="Guardar" style="margin-top:8px;height:48px">+ Guardar</button></div>
-    <div class="lbl2">Meta (opcional)</div>
-    <input class="field" id="mNombre" placeholder="Para qué ahorrás (ej: Vacaciones)" maxlength="40" autocomplete="off" value="${esc(meta?.nombre || '')}">
-    <label class="field" style="display:flex;align-items:center;gap:6px;margin-top:8px"><span style="color:var(--muted)">$</span><input id="mMonto" inputmode="decimal" autocomplete="off" placeholder="Cuánto querés juntar" style="flex:1;border:0;outline:0;background:transparent;color:inherit;font:inherit;width:auto!important;text-align:left" value="${meta ? esc(money(meta.monto).replace(/[^\d.,]/g, '')) : ''}"></label>
-    <div class="btnrow"><button class="ghost" id="mQuitar" ${meta ? '' : 'disabled'}>Quitar meta</button><button class="primary" id="mGuardar" style="margin-top:8px;height:48px">Guardar meta</button></div>
-    <div class="lbl2">Movimientos del ahorro</div>
+    <div class="lbl2">Tus ahorros</div>
+    <div class="card" style="padding:2px 14px;margin:0">${fs.map(frascoFila).join('')}</div>
+    <button class="ghost" data-act="frnuevo">＋ Crear otro ahorro</button>`);
+}
+function abrirFrasco(id){
+  const f = frascoPorId(id); if (!f) return abrirAhorro();
+  const v = saldoFrasco(id), lista = ahorros().filter(a => (a.frasco || 'general') === id).slice(0, 60);
+  const p = f.meta ? Math.max(0, Math.min(100, v / f.meta * 100)) : 0;
+  const s = abrirSheet(`
+    <button class="volver" data-act="ahover">‹ Todos los ahorros</button>
+    <h2>${esc(f.nombre)}</h2>
+    <div class="aho-big num">${money(v)}</div>
+    <div class="aho-sub">${f.meta ? `${Math.round(p)}% de ${money(f.meta)}${v < f.meta ? ' · te faltan ' + money(f.meta - v) : ' · ¡meta cumplida!'}` : 'Sin meta'}</div>
+    <div class="btnrow"><button class="ghost" data-act="ahonuevo" data-t="Sacar" data-f="${esc(id)}">− Sacar</button><button class="primary" data-act="ahonuevo" data-t="Guardar" data-f="${esc(id)}" style="margin-top:8px;height:48px">+ Guardar</button></div>
+    <button class="ghost" id="fEditar">Cambiar nombre o meta</button>
+    <div class="lbl2">Movimientos</div>
     <div class="card" style="padding:2px 14px;margin:0">${lista.length ? lista.map(a => `
       <div class="aho-row"><div><b class="num ${a.tipo === 'Guardar' ? 'g' : ''}">${a.tipo === 'Guardar' ? '+' : '−'}${money(a.monto)}</b>
         <small>${esc([a.tipo === 'Guardar' ? 'Guardado' : 'Sacado', a.medio, a.nota, new Date(a.fecha).toLocaleDateString('es-AR', {day: 'numeric', month: 'short'})].filter(Boolean).join(' · '))}${a.pendiente ? ' · pendiente' : ''}</small></div>
-        <button class="x" data-del="${esc(a.id)}">Borrar</button></div>`).join('') : '<div class="empty" style="padding:14px 0">Todavía no guardaste nada.</div>'}</div>`);
-  const mMonto = $('#mMonto', s);
-  const leerMeta = campoMonto(mMonto);
-  const ponerMeta = item => { D.queue = D.queue.filter(o => o.op !== 'meta'); D.queue.push({op: 'meta', item}); if (modo === 'demo') aplicarDemo(); guardar(); render(); sincronizar(); abrirAhorro(); };
-  $('#mGuardar', s).onclick = () => {
-    const n = leerMeta();
-    if (!(n > 0)) { mMonto.closest('label').classList.remove('shake'); void mMonto.offsetWidth; mMonto.closest('label').classList.add('shake'); mMonto.focus(); return; }
-    ponerMeta({id: 'meta', nombre: $('#mNombre', s).value.trim(), monto: Math.round(n * 100) / 100}); toast('✓ Meta guardada');
-  };
-  $('#mQuitar', s).onclick = () => { ponerMeta({id: 'meta', nombre: '', monto: null}); toast('Meta quitada'); };
+        <button class="x" data-del="${esc(a.id)}">Borrar</button></div>`).join('') : '<div class="empty" style="padding:14px 0">Todavía no guardaste nada acá.</div>'}</div>`);
+  $('#fEditar', s).onclick = () => abrirFrascoEdit(id);
   s.querySelectorAll('[data-del]').forEach(btn => confirmarConDobleToque(btn, '¿Seguro?', () => {
-    const id = btn.dataset.del;
-    const i = D.queue.findIndex(o => o.op === 'aho' && o.item.id === id);
-    if (i >= 0) D.queue.splice(i, 1); else D.queue.push({op: 'ahodel', id});
+    const did = btn.dataset.del;
+    const i = D.queue.findIndex(o => o.op === 'aho' && o.item.id === did);
+    if (i >= 0) D.queue.splice(i, 1); else D.queue.push({op: 'ahodel', id: did});
     if (modo === 'demo') aplicarDemo();
-    guardar(); render(); sincronizar(); abrirAhorro(); toast('Borrado');
+    guardar(); render(); sincronizar(); abrirFrasco(id); toast('Borrado');
   }));
+}
+function abrirFrascoEdit(id){
+  const f = id ? frascoPorId(id) : null;
+  const v = f ? saldoFrasco(f.id) : 0;
+  const s = abrirSheet(`
+    <button class="volver" data-act="${f ? 'frver' : 'ahover'}" data-f="${f ? esc(f.id) : ''}">‹ Volver</button>
+    <h2>${f ? 'Editar ahorro' : 'Nuevo ahorro'}</h2>
+    <div class="lbl2">Nombre</div>
+    <input class="field" id="eNombre" placeholder="Ej: Vacaciones, Auto, Emergencias" maxlength="40" autocomplete="off" value="${esc(f?.nombre || '')}">
+    <div class="lbl2">Meta (opcional)</div>
+    <label class="field" style="display:flex;align-items:center;gap:6px"><span style="color:var(--muted)">$</span><input id="eMeta" inputmode="decimal" autocomplete="off" placeholder="Cuánto querés juntar" style="flex:1;border:0;outline:0;background:transparent;color:inherit;font:inherit;width:auto!important;text-align:left" value="${f?.meta ? esc(money(f.meta).replace(/[^\d.,]/g, '')) : ''}"></label>
+    <button class="primary" id="eGuardar" style="margin-top:16px">${f ? 'Guardar cambios' : 'Crear ahorro'}</button>
+    ${f ? `<button class="danger" id="eBorrar">Borrar este ahorro</button>
+      <p class="msg" style="color:var(--muted);text-align:center">${v > 0 ? `Para borrarlo, primero sacá los ${money(v)} que tiene.` : 'Se borra solo el ahorro; su historial queda.'}</p>` : ''}`);
+  const meta = $('#eMeta', s), nombre = $('#eNombre', s);
+  const leer = campoMonto(meta);
+  if (!f) nombre.focus();
+  $('#eGuardar', s).onclick = () => {
+    const nom = nombre.value.trim();
+    if (!nom) { nombre.classList.remove('shake'); void nombre.offsetWidth; nombre.classList.add('shake'); nombre.focus(); return; }
+    const m = leer();
+    const item = {id: f ? f.id : nuevoIdFrasco(), nombre: nom, meta: m > 0 ? Math.round(m * 100) / 100 : null,
+      creado: f?.creado || (f?.id === 'general' ? new Date(0).toISOString() : new Date().toISOString())};
+    D.queue = D.queue.filter(o => !(o.op === 'frasco' && o.item.id === item.id));
+    D.queue.push({op: 'frasco', item});
+    if (modo === 'demo') aplicarDemo();
+    guardar(); render(); sincronizar(); abrirFrasco(item.id); toast(f ? '✓ Cambios guardados' : `✓ Ahorro “${nom}” creado`);
+  };
+  const borrar = $('#eBorrar', s);
+  if (borrar) confirmarConDobleToque(borrar, 'Tocá de nuevo para borrar', () => {
+    if (saldoFrasco(f.id) > 0) { toast(`Primero sacá los ${money(saldoFrasco(f.id))}`); return; }
+    D.queue = D.queue.filter(o => !(o.op === 'frasco' && o.item.id === f.id));
+    D.queue.push({op: 'frascodel', id: f.id});
+    if (modo === 'demo') aplicarDemo();
+    guardar(); render(); sincronizar(); abrirAhorro(); toast('Ahorro borrado');
+  });
 }
 
 function abrirDetalle(id){
@@ -1944,7 +2052,9 @@ document.addEventListener('click', e => {
   else if (a === 'atajo') instalarAtajo(b.dataset.f);
   else if (a === 'atajogo') descargarAtajo(b.dataset.f);
   else if (a === 'conectar') conectarAtajos(b.dataset.n);
-  else if (a === 'ahonuevo') abrirAhorroForm(b.dataset.t);
+  else if (a === 'ahonuevo') abrirAhorroForm(b.dataset.t, b.dataset.f);
+  else if (a === 'frver') abrirFrasco(b.dataset.f);
+  else if (a === 'frnuevo') abrirFrascoEdit();
   else if (a === 'ahover') abrirAhorro();
   else if (a === 'premium') toast('Muy pronto vas a poder pagar con Mercado Pago');
   else if (a === 'copiarclave') { const k = D.perfil?.clave_atajo; if (k) copiar(k).then(ok => toast(ok ? '✓ Clave copiada' : 'No se pudo copiar')); }
