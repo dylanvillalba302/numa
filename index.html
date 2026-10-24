@@ -224,6 +224,8 @@ label.f{display:block;font-size:13px;font-weight:650;color:var(--muted);margin-t
 .detail .ic.i{background:var(--ing-bg)} .detail .ic.g{background:var(--gas-bg)}
 .detail .big{font-size:36px;font-weight:750;letter-spacing:-.03em}
 .ver{color:var(--faint);font-size:12px;text-align:center;margin-top:16px}
+.amt.aho,.rs .aho{color:var(--celeste)}
+.rs .aho{display:inline-flex;align-items:center;gap:4px}.rs .aho .i{width:15px;height:15px}
 .linkbtn{border:0;background:none;padding:0;color:var(--accent);font:inherit;font-weight:600;cursor:pointer}
 .linkbtn.armed{color:var(--gas)}
 /* iOS subraya solo los emails y teléfonos que detecta: se lo sacamos */
@@ -1338,15 +1340,16 @@ function renderPanel(){
     : `<div class="empty">No hay ${ui.catTipo === 'Gasto' ? 'gastos' : 'ingresos'} en ${etiquetaMes(ui.mes).toLowerCase()}</div>`;
 
   const grupos = [];
-  delMes.forEach(m => {
+  const ahoMes = ahorros().filter(a => mismoMes(new Date(a.fecha), ui.mes)).map(a => ({...a, kind: 'aho'}));
+  delMes.concat(ahoMes).sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).forEach(m => {
     const d = new Date(m.fecha), k = d.toDateString();
     let g = grupos[grupos.length - 1];
     if (!g || g.k !== k) { g = {k, d, items:[], neto:0}; grupos.push(g); }
-    g.items.push(m); g.neto += (m.tipo === 'Ingreso' ? 1 : -1) * ars(m);
+    g.items.push(m); if (m.kind !== 'aho') g.neto += (m.tipo === 'Ingreso' ? 1 : -1) * ars(m);
   });
   const listaHtml = grupos.length ? grupos.map(g => `
       <div class="day"><span>${esc(etiquetaDia(g.d))}</span><span class="num">${g.neto >= 0 ? '+' : '−'}${money(Math.abs(g.neto))}</span></div>
-      <div class="list">${g.items.map(filaHtml).join('')}</div>`).join('')
+      <div class="list">${g.items.map((m, i) => filaX(m, i)).join('')}</div>`).join('')
     : `<div class="card empty">Todavía no hay movimientos en este mes.<br>Tocá <b>Ingreso</b> o <b>Gasto</b> para empezar.</div>`;
 
   const revisarHtml = D.revisar.length ? `
@@ -1433,7 +1436,7 @@ function encabezadoVista(titulo, sub){
 function renderMovimientos(){
   $('#main').innerHTML = `
     ${encabezadoVista('Movimientos', 'Todos tus ingresos y gastos')}
-    <div class="seg big" style="margin-bottom:10px">${['Todos', 'Ingresos', 'Gastos'].map(f =>
+    <div class="seg big" style="margin-bottom:10px">${['Todos', 'Ingresos', 'Gastos', 'Ahorro'].map(f =>
       `<button class="${ui.movFiltro === f ? 'on' : ''}" data-act="movfiltro" data-f="${f}">${f}</button>`).join('')}</div>
     <label class="search">${ico('buscar')}<input id="mBusca" type="search" placeholder="Buscar por nota o categoría" value="${esc(ui.movBusca)}" autocomplete="off"></label>
     <div id="mLista"></div>`;
@@ -1443,24 +1446,29 @@ function renderMovimientos(){
 }
 function pintarListaMovs(){
   const q = sinAcentos(ui.movBusca.trim().toLowerCase());
-  const lista = movimientos().filter(m =>
-    (ui.movFiltro === 'Todos' || (ui.movFiltro === 'Ingresos' ? m.tipo === 'Ingreso' : m.tipo === 'Gasto')) &&
+  const f = ui.movFiltro;
+  const movs = f === 'Ahorro' ? [] : movimientos().filter(m =>
+    (f === 'Todos' || (f === 'Ingresos' ? m.tipo === 'Ingreso' : m.tipo === 'Gasto')) &&
     (!q || sinAcentos(`${m.nota} ${m.categoria} ${m.medio}`.toLowerCase()).includes(q)));
-  let ing = 0, gas = 0;
-  lista.forEach(m => m.tipo === 'Ingreso' ? ing += ars(m) : gas += ars(m));
+  const ahs = (f === 'Todos' || f === 'Ahorro') ? ahorros().map(a => ({...a, kind: 'aho'})).filter(a =>
+    !q || sinAcentos(`ahorro ${a.nota} ${frascoPorId(a.frasco || 'general')?.nombre || ''} ${a.medio}`.toLowerCase()).includes(q)) : [];
+  const lista = movs.concat(ahs).sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+  let ing = 0, gas = 0, aho = 0;
+  movs.forEach(m => m.tipo === 'Ingreso' ? ing += ars(m) : gas += ars(m));
+  ahs.forEach(a => aho += (a.tipo === 'Guardar' ? 1 : -1) * Number(a.monto));
   const grupos = [];
   lista.forEach(m => {
     const d = new Date(m.fecha), k = mesClave(d);
     let g = grupos[grupos.length - 1];
     if (!g || g.k !== k) { g = {k, d, items: [], neto: 0}; grupos.push(g); }
-    g.items.push(m); g.neto += (m.tipo === 'Ingreso' ? 1 : -1) * ars(m);
+    g.items.push(m); if (m.kind !== 'aho') g.neto += (m.tipo === 'Ingreso' ? 1 : -1) * ars(m);
   });
   $('#mLista').innerHTML = `
     <div class="card resumen"><div><small>${lista.length} movimiento${lista.length === 1 ? '' : 's'}</small></div>
-      <div class="rs"><span class="pos num">+${money(ing)}</span><span class="neg num">−${money(gas)}</span></div></div>
+      <div class="rs">${f !== 'Ahorro' ? `<span class="pos num">+${money(ing)}</span><span class="neg num">−${money(gas)}</span>` : ''}${ahs.length ? `<span class="num aho">${ico('alcancia')} ${aho < 0 ? '−' : ''}${money(Math.abs(aho))}</span>` : ''}</div></div>
     ${grupos.length ? grupos.map(g => `
       <div class="day"><span>${esc(etiquetaMes(g.d))}</span><span class="num">${g.neto >= 0 ? '+' : '−'}${money(Math.abs(g.neto))}</span></div>
-      <div class="list">${g.items.map(m => filaHtml(m, true)).join('')}</div>`).join('')
+      <div class="list">${g.items.map(m => filaX(m, true)).join('')}</div>`).join('')
     : `<div class="card empty">${q ? 'No hay movimientos que coincidan con la búsqueda.' : 'Todavía no hay movimientos.'}</div>`}`;
 }
 
@@ -1630,6 +1638,16 @@ function abrirFormFijo(pre){
   });
 }
 
+const filaX = (m, conFecha) => m.kind === 'aho' ? filaAhorro(m, conFecha) : filaHtml(m, conFecha);
+function filaAhorro(a, conFecha){
+  const d = new Date(a.fecha), fr = frascoPorId(a.frasco || 'general');
+  const sub = [a.tipo === 'Guardar' ? 'Guardado' : 'Sacado', a.medio, a.nota, conFecha ? d.toLocaleDateString('es-AR', {day: 'numeric', month: 'short'}) : hora(d)].filter(Boolean).map(esc).join(' · ');
+  return `<button class="row" data-act="frver" data-f="${esc(a.frasco || 'general')}">
+      <span class="ic tint" style="--c:var(--celeste)">${ico('alcancia')}
+        ${a.pendiente ? '<span class="p"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round"><path d="M12 7v5l3 2"/></svg></span>' : ''}</span>
+      <span style="min-width:0"><b>Ahorro · ${esc(fr?.nombre || 'General')}</b><small>${sub}</small></span>
+      <span class="amt num aho">${a.tipo === 'Guardar' ? '+' : '−'}${money(a.monto)}</span></button>`;
+}
 function filaHtml(m, conFecha){
   const d = new Date(m.fecha);
   const sub = [m.nota, m.medio, conFecha ? d.toLocaleDateString('es-AR', {day: 'numeric', month: 'short'}) : hora(d)].filter(Boolean).map(esc).join(' · ');
