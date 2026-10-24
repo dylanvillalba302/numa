@@ -1755,7 +1755,7 @@ document.addEventListener('click', e => {
   else if (a === 'dolartipo') { LS.set('numa_dolar_tipo', b.dataset.t); DOLAR = null; actualizarDolar(true).then(() => abrirAjustes()); abrirAjustes(); }
   else if (a === 'tema') { aplicarTema(b.dataset.t); abrirAjustes(); }
   else if (a === 'cerrarmenu') cerrarMenu();
-  else if (a === 'vista') { ui.vista = b.dataset.v; cerrarMenu(); window.scrollTo(0, 0); render(); }
+  else if (a === 'vista') { if (b.dataset.v === 'panel' && ui.vista !== 'panel') animarEntrada = true; ui.vista = b.dataset.v; cerrarMenu(); window.scrollTo(0, 0); render(); }
   else if (a === 'movfiltro') { ui.movFiltro = b.dataset.f; render(); }
   else if (a === 'fijonuevo') abrirFormFijo();
   else if (a === 'prestamonuevo') abrirFormFijo({prestamo: true, tipo: 'Gasto'});
@@ -1781,7 +1781,18 @@ document.addEventListener('click', e => {
 
 window.addEventListener('online',  () => { renderEstado(); sincronizar(); });
 window.addEventListener('offline', () => { if (modo === 'app' || modo === 'demo') renderEstado(); });
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { sincronizar(); actualizarDolar(); } });
+// Cada vez que se vuelve a abrir la app (aunque estuviera en segundo plano), el inicio se anima de nuevo
+let ocultaDesde = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') { ocultaDesde = Date.now(); return; }
+  if (ocultaDesde && Date.now() - ocultaDesde > 1500 && (modo === 'app' || modo === 'demo')) {
+    if (ui.vista === 'panel' && !document.body.classList.contains('sheet-open') && !tourActivo) {
+      window.scrollTo(0, 0); animarEntrada = true; animHasta = 0; render();
+    }
+  }
+  ocultaDesde = 0;
+  sincronizar(); actualizarDolar();
+});
 actualizarDolar();
 setInterval(() => { if (D.queue.length && navigator.onLine) sincronizar(); }, 20000);
 
