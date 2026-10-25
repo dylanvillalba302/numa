@@ -770,7 +770,7 @@ const keyOp = o => o.op + ':' + (o.item ? o.item.id : o.id);
 
 function movimientos(){
   const dels = new Set(D.queue.filter(o => o.op === 'del').map(o => o.id));
-  const pend = D.queue.filter(o => o.op === 'add').map(o => ({...o.item, pendiente: true}));
+  const pend = D.queue.filter(o => o.op === 'add' || o.op === 'edit').map(o => ({...o.item, pendiente: true}));
   const pendIds = new Set(pend.map(p => p.id));
   return D.movimientos.filter(m => !dels.has(m.id) && !pendIds.has(m.id)).concat(pend)
     .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
@@ -868,6 +868,14 @@ async function sincronizar(manual){
     });
     if (adds.length) {
       const {error} = await sb.from('movimientos').upsert(adds, {onConflict: 'user_id,id', ignoreDuplicates: true});
+      if (error) throw error;
+    }
+    const eds = enviados.filter(o => o.op === 'edit').map(o => {
+      const m = o.item;
+      return {id: m.id, fecha: m.fecha, tipo: m.tipo, monto: m.monto, moneda: m.moneda === 'USD' ? 'USD' : 'ARS', categoria: m.categoria, medio: m.medio, nota: m.nota || '', origen: m.origen || 'App'};
+    });
+    if (eds.length) {
+      const {error} = await sb.from('movimientos').upsert(eds, {onConflict: 'user_id,id'});
       if (error) throw error;
     }
     const dels = enviados.filter(o => o.op === 'del').map(o => o.id);
@@ -1029,6 +1037,7 @@ function aplicarDemo(){
   D.queue.forEach(o => {
     if (o.op === 'add') D.movimientos.push(o.item);
     else if (o.op === 'del') D.movimientos = D.movimientos.filter(m => m.id !== o.id);
+    else if (o.op === 'edit') D.movimientos = D.movimientos.map(m => m.id === o.item.id ? o.item : m);
     else if (o.op === 'aho') (D.ahorros = D.ahorros || []).push(o.item);
     else if (o.op === 'ahodel') D.ahorros = (D.ahorros || []).filter(a => a.id !== o.id);
     else if (o.op === 'frasco') D.frascos = (D.frascos || []).filter(f => f.id !== o.item.id).concat([o.item]);
@@ -1710,6 +1719,7 @@ function abrirForm(tipo, pre){
   const monto = $('#fMonto', s), fecha = $('#fFecha', s);
   fecha.value = toLocalInput(pre.fecha ? new Date(pre.fecha) : new Date());
   if (pre.nota) $('#fNota', s).value = pre.nota;
+  if (pre.editar && pre.monto) monto.value = String(pre.monto).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   const ancho = () => { monto.style.width = Math.max(1, (monto.value || '0').length * 0.62 + 0.3) + 'em'; };
 
   const pintar = () => {
@@ -1721,7 +1731,7 @@ function abrirForm(tipo, pre){
     $('#fCats', s).innerHTML = lista.map(c =>
       `<button type="button" class="chip ${c.nombre === st.cat ? 'on' : ''}" data-cat="${esc(c.nombre)}" style="--c:${estiloCat(c.nombre, c.icono).color}">${ico(estiloCat(c.nombre, c.icono).icono)}${esc(c.nombre)}</button>`).join('');
     $('#fCatOtra', s).style.display = st.cat === 'Otros' ? '' : 'none';
-    $('#fGuardar', s).textContent = st.tipo === 'Gasto' ? 'Guardar gasto' : 'Guardar ingreso';
+    $('#fGuardar', s).textContent = pre.editar ? 'Guardar cambios' : st.tipo === 'Gasto' ? 'Guardar gasto' : 'Guardar ingreso';
     $('#fMon', s).textContent = st.moneda === 'USD' ? 'US$' : '$';
     $('#fMon', s).classList.toggle('usd', st.moneda === 'USD');
   };
@@ -1757,17 +1767,22 @@ function abrirForm(tipo, pre){
     const f = fecha.value ? new Date(fecha.value) : new Date();
     const item = {id: pre.id || uid(), fecha: (isNaN(f) ? new Date() : f).toISOString(), tipo: st.tipo,
       monto: Math.round(n * 100) / 100, moneda: st.moneda, categoria: catElegida(st, s, 'f'), medio: st.medio,
-      nota: $('#fNota', s).value.trim(), origen: pre.id ? 'Atajo' : 'App'};
-    D.queue.push({op:'add', item});
-    if (pre.id) D.revisar = D.revisar.filter(r => r.id !== pre.id);
+      nota: $('#fNota', s).value.trim(), origen: pre.editar ? (pre.origen || 'App') : pre.id ? 'Atajo' : 'App'};
+    if (pre.editar) {
+      // si todavía no se había enviado, se reemplaza en la cola; si ya estaba en la cuenta, se manda el cambio
+      const i = D.queue.findIndex(o => o.op === 'add' && o.item.id === item.id);
+      if (i >= 0) D.queue[i] = {op: 'add', item};
+      else { D.queue = D.queue.filter(o => !(o.op === 'edit' && o.item.id === item.id)); D.queue.push({op: 'edit', item}); }
+    } else D.queue.push({op:'add', item});
+    if (pre.id && !pre.editar) D.revisar = D.revisar.filter(r => r.id !== pre.id);
     if (modo === 'demo') aplicarDemo();
     guardar();
     ui.mes = primerDia(new Date(item.fecha));
     cerrarSheet(); render();
-    toast(modo === 'demo' || navigator.onLine ? `✓ ${st.tipo} de ${montoTxt(item)} guardado` : '✓ Guardado sin conexión · se envía solo');
+    toast(pre.editar ? '✓ Cambios guardados' : modo === 'demo' || navigator.onLine ? `✓ ${st.tipo} de ${montoTxt(item)} guardado` : '✓ Guardado sin conexión · se envía solo');
     sincronizar();
   }
-  if (!pre.monto) monto.focus({preventScroll: true});
+  if (!pre.monto && !pre.editar) monto.focus({preventScroll: true});
 }
 
 /* ---------- Ahorro: formularios ---------- */
@@ -1947,11 +1962,15 @@ function abrirDetalle(id){
       <div class="kv"><span>Cargado desde</span><b>${m.origen === 'Atajo' ? 'Atajo de iPhone' : 'App'}</b></div>
       <div class="kv"><span>Estado</span><b style="color:${m.pendiente ? 'var(--warn)' : 'var(--ing)'}">${m.pendiente ? 'Pendiente de envío' : (modo === 'demo' ? 'Demo' : 'Guardado')}</b></div>
     </div>
+    <button class="primary" id="dEditar">Editar</button>
     <button class="danger" id="dBorrar">Eliminar movimiento</button>
     <button class="ghost" data-act="cerrar">Cerrar</button>`);
+  $('#dEditar', s).onclick = () => abrirForm(m.tipo, {...m, editar: true});
   confirmarConDobleToque($('#dBorrar', s), 'Tocá de nuevo para eliminar', () => {
     const enCola = D.queue.findIndex(o => o.op === 'add' && o.item.id === id);
-    if (enCola >= 0) D.queue.splice(enCola, 1); else D.queue.push({op:'del', id});
+    D.queue = D.queue.filter(o => !(o.op === 'edit' && o.item.id === id));
+    const enCola2 = D.queue.findIndex(o => o.op === 'add' && o.item.id === id);
+    if (enCola2 >= 0) D.queue.splice(enCola2, 1); else D.queue.push({op:'del', id});
     if (modo === 'demo') aplicarDemo();
     guardar(); cerrarSheet(); render(); toast('Movimiento eliminado'); sincronizar();
   });
