@@ -485,7 +485,7 @@ svg.i{width:20px;height:20px;flex:none;display:block}
 #main .card{background:var(--k-card);border:1px solid var(--k-card-bd);border-radius:22px;box-shadow:var(--k-shadow)}
 #main .card h3{text-transform:uppercase;letter-spacing:.07em;font-size:12.5px;font-weight:700;color:var(--k-h3)}
 #main .hero{background:var(--k-hero);border-color:var(--k-hero-bd)}
-.hero .lbl{font-size:13.5px;color:var(--k-hero-lbl)}
+.hero .lbl{font-size:12.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--k-hero-lbl)}
 .hero .big{font-size:44px;letter-spacing:-.045em}
 .hero .mini{background:var(--k-mini);border:1px solid var(--k-mini-bd);border-radius:16px}
 .ratio .bar{height:6px;border-radius:9px;background:var(--k-track)}
@@ -1429,7 +1429,7 @@ function renderPanel(){
     ${revisarHtml}
     <div class="tablero">
     <div class="card hero t-hero">
-      <div class="lbl">Balance del mes</div>
+      <div class="lbl">Balance</div>
       <div class="big num ${bal < 0 ? 'neg' : ''}" data-cuenta="${bal}">${bal < 0 ? '−' : ''}${money(Math.abs(bal))}</div>
       <div class="split">
         <div class="mini"><i class="arrow i">${ico('arriba')}</i><div class="mtx"><span>Ingresos</span><b class="num" data-cuenta="${ing}">${money(ing)}</b></div></div>
