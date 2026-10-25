@@ -1351,7 +1351,7 @@ function tarjetaAhorro(){
   };
   return `<div class="card t-aho" data-act="ahover">
     <div class="r"><span class="ic">${ico('alcancia')}</span>
-      <div class="tx"><small>Mis ahorros</small><b class="num" data-cuenta="${t}">${money(t)}</b></div>
+      <div class="tx"><small>Ahorros</small><b class="num" data-cuenta="${t}">${money(t)}</b></div>
       <button class="bt" data-act="ahonuevo" data-t="Sacar" aria-label="Sacar del ahorro">−</button>
       <button class="bt" data-act="ahonuevo" data-t="Guardar" aria-label="Guardar en el ahorro">+</button></div>
     ${detalle ? `<div class="frs">${fs.slice(0, 4).map(fila).join('')}${fs.length > 4 ? `<div class="fr"><span class="n">y ${fs.length - 4} más</span></div>` : ''}</div>` : ''}
