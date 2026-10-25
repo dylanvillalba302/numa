@@ -1468,7 +1468,7 @@ function pintarListaMovs(){
   });
   $('#mLista').innerHTML = `
     <div class="card resumen"><div><small>${lista.length} movimiento${lista.length === 1 ? '' : 's'}</small></div>
-      <div class="rs">${f !== 'Ahorro' ? `<span class="pos num">+${money(ing)}</span><span class="neg num">−${money(gas)}</span>` : ''}${ahs.length ? `<span class="num aho">${ico('alcancia')} ${aho < 0 ? '−' : ''}${money(Math.abs(aho))}</span>` : ''}</div></div>
+      <div class="rs">${f === 'Todos' || f === 'Ingresos' ? `<span class="pos num">+${money(ing)}</span>` : ''}${f === 'Todos' || f === 'Gastos' ? `<span class="neg num">−${money(gas)}</span>` : ''}${ahs.length ? `<span class="num aho">${ico('alcancia')} ${aho < 0 ? '−' : ''}${money(Math.abs(aho))}</span>` : ''}</div></div>
     ${grupos.length ? grupos.map(g => `
       <div class="day"><span>${esc(etiquetaMes(g.d))}</span><span class="num">${g.neto >= 0 ? '+' : '−'}${money(Math.abs(g.neto))}</span></div>
       <div class="list">${g.items.map(m => filaX(m, true)).join('')}</div>`).join('')
