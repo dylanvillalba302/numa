@@ -1437,7 +1437,7 @@ function renderPanel(){
       </div>
       <div class="ratio"><div class="bar"><i style="width:${pct.toFixed(1)}%"></i></div><small>${ratioTxt}</small></div>
     </div>
-    <div class="card t-disp"><h3>Disponible hoy</h3>
+    <div class="card t-disp"><h3>Disponible</h3>
       <div class="wallets">${MEDIOS.map(([m, ic]) => `<div class="wallet"><span class="ic">${ico(ic)}</span><div><small>${m}</small>
         <b class="num ${s[m] < 0 ? 'neg' : ''}" data-cuenta="${s[m] || 0}">${s[m] < 0 ? '−' : ''}${money(Math.abs(s[m] || 0))}</b></div></div>`).join('')}
         ${s.hayUSD && CON_DOLARES ? `<div class="wallet"><span class="ic">${ico('dolar')}</span><div><small>Dólares</small>
