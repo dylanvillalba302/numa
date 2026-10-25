@@ -449,6 +449,56 @@ svg.i{width:20px;height:20px;flex:none;display:block}
 .seg.big button{display:flex;align-items:center;justify-content:center;gap:7px}
 .seg.big button svg.i{width:17px;height:17px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* =====================================================================
+   Estilo "pulido con celeste" (oscuro y claro usan las mismas reglas)
+   ===================================================================== */
+:root{
+  --k-card:linear-gradient(180deg,#161d2a,#121823); --k-card-bd:rgba(56,189,248,.10);
+  --k-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 12px 30px rgba(0,0,0,.25);
+  --k-hero:radial-gradient(110% 90% at 100% 0%,rgba(56,189,248,.30),transparent 60%),radial-gradient(80% 70% at 0% 100%,rgba(37,99,235,.20),transparent 60%),linear-gradient(180deg,#14213a,#111a2c);
+  --k-hero-bd:rgba(56,189,248,.22); --k-hero-lbl:#7dd3fc; --k-h3:#bae6fd;
+  --k-mini:rgba(255,255,255,.035); --k-mini-bd:rgba(255,255,255,.05);
+  --k-ic-bg:rgba(56,189,248,.13); --k-ic:#38bdf8; --k-seg:var(--card2); --k-seg-on:rgba(56,189,248,.16); --k-seg-on-tx:#7dd3fc;
+  --k-track:#2a3446; --k-act:#0f2236; --k-act-bd:rgba(56,189,248,.38); --k-act-tx:#e0f2fe; --k-act-sh:0 8px 24px rgba(0,0,0,.35);
+}
+@media (prefers-color-scheme:light){ :root:not([data-theme="dark"]){
+  --k-card:linear-gradient(180deg,#ffffff,#fbfdff); --k-card-bd:rgba(56,189,248,.18);
+  --k-shadow:0 1px 2px rgba(15,23,42,.04),0 10px 28px rgba(14,116,144,.08);
+  --k-hero:radial-gradient(110% 90% at 100% 0%,rgba(56,189,248,.28),transparent 60%),radial-gradient(80% 70% at 0% 100%,rgba(37,99,235,.10),transparent 60%),linear-gradient(180deg,#f0f9ff,#ffffff);
+  --k-hero-bd:rgba(56,189,248,.35); --k-hero-lbl:#0284c7; --k-h3:#0369a1;
+  --k-mini:rgba(255,255,255,.75); --k-mini-bd:rgba(56,189,248,.16);
+  --k-ic-bg:#e0f2fe; --k-ic:#0284c7; --k-seg:#eef6fc; --k-seg-on:#ffffff; --k-seg-on-tx:#0284c7;
+  --k-track:#e0f2fe; --k-act:#e0f2fe; --k-act-bd:rgba(56,189,248,.5); --k-act-tx:#075985; --k-act-sh:0 8px 24px rgba(14,116,144,.14);
+  --bg:#f2f6fb;
+}}
+:root[data-theme="light"]{
+  --k-card:linear-gradient(180deg,#ffffff,#fbfdff); --k-card-bd:rgba(56,189,248,.18);
+  --k-shadow:0 1px 2px rgba(15,23,42,.04),0 10px 28px rgba(14,116,144,.08);
+  --k-hero:radial-gradient(110% 90% at 100% 0%,rgba(56,189,248,.28),transparent 60%),radial-gradient(80% 70% at 0% 100%,rgba(37,99,235,.10),transparent 60%),linear-gradient(180deg,#f0f9ff,#ffffff);
+  --k-hero-bd:rgba(56,189,248,.35); --k-hero-lbl:#0284c7; --k-h3:#0369a1;
+  --k-mini:rgba(255,255,255,.75); --k-mini-bd:rgba(56,189,248,.16);
+  --k-ic-bg:#e0f2fe; --k-ic:#0284c7; --k-seg:#eef6fc; --k-seg-on:#ffffff; --k-seg-on-tx:#0284c7;
+  --k-track:#e0f2fe; --k-act:#e0f2fe; --k-act-bd:rgba(56,189,248,.5); --k-act-tx:#075985; --k-act-sh:0 8px 24px rgba(14,116,144,.14);
+  --bg:#f2f6fb;
+}
+#main .card{background:var(--k-card);border:1px solid var(--k-card-bd);border-radius:22px;box-shadow:var(--k-shadow)}
+#main .card h3{text-transform:none;letter-spacing:-.01em;font-size:15px;font-weight:700;color:var(--k-h3)}
+#main .hero{background:var(--k-hero);border-color:var(--k-hero-bd)}
+.hero .lbl{font-size:13.5px;color:var(--k-hero-lbl)}
+.hero .big{font-size:44px;letter-spacing:-.045em}
+.hero .mini{background:var(--k-mini);border:1px solid var(--k-mini-bd);border-radius:16px}
+.ratio .bar{height:6px;border-radius:9px;background:var(--k-track)}
+.ratio .bar i{background:linear-gradient(90deg,#2563eb,#38bdf8,#7dd3fc);box-shadow:0 0 12px rgba(56,189,248,.45)}
+.wallet .ic{border-radius:14px;background:var(--k-ic-bg);color:var(--k-ic)}
+#main .seg{background:var(--k-seg)}
+#main .seg button.on{background:var(--k-seg-on);color:var(--k-seg-on-tx)}
+.icon-btn{border-color:var(--k-card-bd)}
+.actions .bi,.actions .bg{background:var(--k-act);color:var(--k-act-tx);border:1px solid var(--k-act-bd);box-shadow:var(--k-act-sh)}
+.actions .bi svg{background:#16a34a;color:#fff;border-radius:10px}
+.actions .bg svg{background:#e11d48;color:#fff;border-radius:10px}
+.t-aho .tx small{text-transform:none;letter-spacing:-.01em;font-size:13px;font-weight:700;color:var(--k-h3)}
+@media (min-width:760px){ .hero .big{font-size:50px} }
 </style>
 </head>
 <body>
@@ -1265,7 +1315,7 @@ function graficoMensual(todos){
       : dif > 0 ? `Este mes gastás un <b class="neg">${dif}% más</b> que tu promedio`
                 : `Este mes gastás un <b class="pos">${-dif}% menos</b> que tu promedio`;
   }
-  return `<div class="card t-mes"><h3>Gastos por mes <span class="h3r">Promedio ${prom ? plataCorta(prom) : '—'}</span></h3>
+  return `<div class="card t-mes"><h3>Últimos meses <span class="h3r">Promedio ${prom ? plataCorta(prom) : '—'}</span></h3>
     <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gastos de los últimos 6 meses">${linea}${barras}</svg>
     <p class="cnote">${nota}</p></div>`;
 }
@@ -1301,7 +1351,7 @@ function tarjetaAhorro(){
   };
   return `<div class="card t-aho" data-act="ahover">
     <div class="r"><span class="ic">${ico('alcancia')}</span>
-      <div class="tx"><small>Ahorro</small><b class="num" data-cuenta="${t}">${money(t)}</b></div>
+      <div class="tx"><small>Mis ahorros</small><b class="num" data-cuenta="${t}">${money(t)}</b></div>
       <button class="bt" data-act="ahonuevo" data-t="Sacar" aria-label="Sacar del ahorro">−</button>
       <button class="bt" data-act="ahonuevo" data-t="Guardar" aria-label="Guardar en el ahorro">+</button></div>
     ${detalle ? `<div class="frs">${fs.slice(0, 4).map(fila).join('')}${fs.length > 4 ? `<div class="fr"><span class="n">y ${fs.length - 4} más</span></div>` : ''}</div>` : ''}
@@ -1387,7 +1437,7 @@ function renderPanel(){
       </div>
       <div class="ratio"><div class="bar"><i style="width:${pct.toFixed(1)}%"></i></div><small>${ratioTxt}</small></div>
     </div>
-    <div class="card t-disp"><h3>Disponible</h3>
+    <div class="card t-disp"><h3>Disponible hoy</h3>
       <div class="wallets">${MEDIOS.map(([m, ic]) => `<div class="wallet"><span class="ic">${ico(ic)}</span><div><small>${m}</small>
         <b class="num ${s[m] < 0 ? 'neg' : ''}" data-cuenta="${s[m] || 0}">${s[m] < 0 ? '−' : ''}${money(Math.abs(s[m] || 0))}</b></div></div>`).join('')}
         ${s.hayUSD && CON_DOLARES ? `<div class="wallet"><span class="ic">${ico('dolar')}</span><div><small>Dólares</small>
@@ -1395,7 +1445,7 @@ function renderPanel(){
           ${cotiz() ? `<small class="eq">≈ ${s.USD < 0 ? '−' : ''}${money(Math.abs(s.USD) * cotiz())}</small>` : ''}</div></div>` : ''}</div>
       ${s.hayUSD && CON_DOLARES && cotiz() ? `<p class="cnote">Dólar ${esc((DOLAR_TIPOS.find(t => t[0] === tipoDolar()) || [,''])[1].toLowerCase())}: ${money(cotiz())} · los totales en US$ se cuentan en pesos a ese valor.</p>` : ''}
     </div>
-    <div class="card t-cat"><h3>Por categoría
+    <div class="card t-cat"><h3>Categorías
         <span class="seg"><button class="${ui.catTipo === 'Gasto' ? 'on' : ''}" data-act="cattipo" data-t="Gasto">Gastos</button><button class="${ui.catTipo === 'Ingreso' ? 'on' : ''}" data-act="cattipo" data-t="Ingreso">Ingresos</button></span></h3>
       ${graficoCategorias(arr, tot)}
       ${catsHtml}
@@ -1417,7 +1467,7 @@ function aplicarTema(t){
   if (t === 'light' || t === 'dark') r.setAttribute('data-theme', t); else r.removeAttribute('data-theme');
   const oscuro = t === 'dark' || (t === 'auto' && !(window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches));
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', oscuro ? '#0a0e15' : '#f3f5f9');
+  if (meta) meta.setAttribute('content', oscuro ? '#0a0e15' : '#f2f6fb');
 }
 
 /* ---------- Menú lateral ---------- */
