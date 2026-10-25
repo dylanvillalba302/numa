@@ -1338,7 +1338,7 @@ function graficoCategorias(arr, tot){
   const sel = ui.catSel && segs.find(x => x.n === ui.catSel);
   const centro = sel
     ? `<text x="60" y="55" class="dc1">${esc(sel.n.length > 13 ? sel.n.slice(0, 12) + '…' : sel.n)}</text><text x="60" y="71" class="dc2">${plataCorta(sel.v)}</text><text x="60" y="83" class="dc3">${Math.round(sel.v / tot * 100)}%</text>`
-    : `<text x="60" y="55" class="dc1">${ui.catTipo === 'Gasto' ? 'Gastos' : 'Ingresos'}</text><text x="60" y="72" class="dc2" data-cuenta="${tot}" data-corto="1">${plataCorta(tot)}</text>`;
+    : `<text x="60" y="66" class="dc2" data-cuenta="${tot}" data-corto="1">${plataCorta(tot)}</text>`;
   return `<div class="donut"><svg viewBox="0 0 120 120" role="img" aria-label="Distribución por categoría"><defs><mask id="dBarre" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120">
       <circle cx="60" cy="60" r="${r}" fill="none" stroke="#fff" stroke-width="18" stroke-dasharray="${C.toFixed(2)} ${C.toFixed(2)}" class="barre"/></mask></defs>
     <g transform="rotate(-90 60 60)"><circle cx="60" cy="60" r="${r}" class="track"/><g mask="url(#dBarre)">${arcs}</g></g>${centro}</svg></div>`;
