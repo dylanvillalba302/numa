@@ -465,6 +465,8 @@ svg.i{width:20px;height:20px;flex:none;display:block}
   --k-hero-bd:rgba(56,189,248,.22); --k-hero-lbl:#7dd3fc; --k-h3:#bae6fd;
   --k-mini:rgba(255,255,255,.035); --k-mini-bd:rgba(255,255,255,.05);
   --k-ic-bg:rgba(56,189,248,.13); --k-ic:#38bdf8; --k-seg:var(--card2); --k-seg-on:rgba(56,189,248,.16); --k-seg-on-tx:#7dd3fc;
+  --k-sheet:linear-gradient(180deg,#121a28,#0d131d); --k-sheet-bd:rgba(56,189,248,.28); --k-field:#141c2a; --k-seg2:#0b1220; --k-chip-on-tx:#e0f2fe;
+  --k-bar:rgba(56,189,248,.22); --k-auth:radial-gradient(90% 50% at 50% 0%,rgba(56,189,248,.28),transparent 70%),radial-gradient(70% 40% at 100% 100%,rgba(37,99,235,.22),transparent 70%),#070b13;
   --k-track:#2a3446; --k-act:#0f2236; --k-act-bd:rgba(56,189,248,.38); --k-act-tx:#e0f2fe; --k-act-sh:0 8px 24px rgba(0,0,0,.35);
 }
 @media (prefers-color-scheme:light){ :root:not([data-theme="dark"]){
@@ -474,6 +476,8 @@ svg.i{width:20px;height:20px;flex:none;display:block}
   --k-hero-bd:rgba(56,189,248,.35); --k-hero-lbl:#0284c7; --k-h3:#0369a1;
   --k-mini:rgba(255,255,255,.75); --k-mini-bd:rgba(56,189,248,.16);
   --k-ic-bg:#e0f2fe; --k-ic:#0284c7; --k-seg:#eef6fc; --k-seg-on:#ffffff; --k-seg-on-tx:#0284c7;
+  --k-sheet:linear-gradient(180deg,#ffffff,#f5faff); --k-sheet-bd:rgba(56,189,248,.35); --k-field:#ffffff; --k-seg2:#eef6fc; --k-chip-on-tx:#075985;
+  --k-bar:rgba(2,132,199,.18); --k-auth:radial-gradient(90% 50% at 50% 0%,rgba(56,189,248,.30),transparent 70%),radial-gradient(70% 40% at 100% 100%,rgba(37,99,235,.12),transparent 70%),#f2f6fb;
   --k-track:#e0f2fe; --k-act:#e0f2fe; --k-act-bd:rgba(56,189,248,.5); --k-act-tx:#075985; --k-act-sh:0 8px 24px rgba(14,116,144,.14);
   --bg:#f2f6fb;
 }}
@@ -484,6 +488,8 @@ svg.i{width:20px;height:20px;flex:none;display:block}
   --k-hero-bd:rgba(56,189,248,.35); --k-hero-lbl:#0284c7; --k-h3:#0369a1;
   --k-mini:rgba(255,255,255,.75); --k-mini-bd:rgba(56,189,248,.16);
   --k-ic-bg:#e0f2fe; --k-ic:#0284c7; --k-seg:#eef6fc; --k-seg-on:#ffffff; --k-seg-on-tx:#0284c7;
+  --k-sheet:linear-gradient(180deg,#ffffff,#f5faff); --k-sheet-bd:rgba(56,189,248,.35); --k-field:#ffffff; --k-seg2:#eef6fc; --k-chip-on-tx:#075985;
+  --k-bar:rgba(2,132,199,.18); --k-auth:radial-gradient(90% 50% at 50% 0%,rgba(56,189,248,.30),transparent 70%),radial-gradient(70% 40% at 100% 100%,rgba(37,99,235,.12),transparent 70%),#f2f6fb;
   --k-track:#e0f2fe; --k-act:#e0f2fe; --k-act-bd:rgba(56,189,248,.5); --k-act-tx:#075985; --k-act-sh:0 8px 24px rgba(14,116,144,.14);
   --bg:#f2f6fb;
 }
@@ -509,6 +515,35 @@ svg.i{width:20px;height:20px;flex:none;display:block}
 .acc:hover{border-color:#38bdf8}
 .mi.on .mic{background:linear-gradient(135deg,#2563eb,#38bdf8);color:#fff}
 .mi.on b{color:var(--k-h3)}
+/* Formularios */
+#sheet{background:var(--k-sheet);border-top:1px solid var(--k-sheet-bd)}
+#sheet .handle{background:rgba(125,211,252,.55)}
+#sheet .lbl2{color:var(--k-h3)}
+#fTipo,#xTipo,#fMedio,#xMedio,#aMedio{background:var(--k-seg2);border:1px solid var(--k-card-bd)}
+#sheet[data-tipo=Gasto] #fTipo button.on,#sheet[data-tipo=Gasto] #xTipo button.on{background:var(--gas-bg);color:var(--gas);box-shadow:inset 0 0 0 1px var(--gas)}
+#sheet[data-tipo=Ingreso] #fTipo button.on,#sheet[data-tipo=Ingreso] #xTipo button.on{background:var(--ing-bg);color:var(--ing);box-shadow:inset 0 0 0 1px var(--ing)}
+#fMedio button.on,#xMedio button.on,#aMedio button.on{background:var(--k-seg-on);color:var(--k-seg-on-tx)}
+#sheet .amount input{font-size:56px}
+#sheet[data-tipo=Gasto] .amount input{color:var(--gas)}
+#sheet .amount .mon,#sheet .amount > span{color:var(--k-hero-lbl)}
+#sheet .chip{background:var(--k-field);border:1px solid var(--k-card-bd);border-radius:14px}
+#sheet .chip.on{background:var(--k-seg-on);border-color:#38bdf8;color:var(--k-chip-on-tx)}
+#sheet .field{background:var(--k-field);border:1px solid var(--k-card-bd);border-radius:14px}
+#sheet .primary,.auth .primary{background:linear-gradient(135deg,#2563eb,#38bdf8);color:#fff;border-radius:16px;box-shadow:0 10px 26px rgba(56,189,248,.3)}
+/* Pantalla de entrada */
+body:has(.auth){background:var(--k-auth)}
+.auth{text-align:center;padding-top:7vh}
+.auth .mark{width:84px;height:84px;margin:0 auto 22px;border-radius:24px;box-shadow:0 0 0 1px rgba(56,189,248,.3),0 18px 50px rgba(56,189,248,.35)}
+.auth p.sub{color:var(--k-hero-lbl)}
+.auth .field{background:var(--k-field);border:1px solid var(--k-card-bd);border-radius:16px;height:54px}
+.auth .primary{height:54px}
+.auth .links button{color:var(--k-hero-lbl)}
+.auth .ghost{background:transparent;border:1px solid var(--k-act-bd);border-radius:16px}
+/* Gráfico de meses: el mes elegido con el degradado, los otros suaves (sin brillo) */
+#main .chart .bar{fill:var(--k-bar)}
+#main .chart .mb.sel .bar{fill:url(#gBar)}
+#main .chart .mb.sel .ml{fill:var(--k-hero-lbl);font-weight:700}
+
 </style>
 </head>
 <body>
@@ -1326,7 +1361,7 @@ function graficoMensual(todos){
                 : `Este mes gastás un <b class="pos">${-dif}% menos</b> que tu promedio`;
   }
   return `<div class="card t-mes"><h3>Últimos meses <span class="h3r">Promedio ${prom ? plataCorta(prom) : '—'}</span></h3>
-    <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gastos de los últimos 6 meses">${linea}${barras}</svg>
+    <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gastos de los últimos 6 meses"><defs><linearGradient id="gBar" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#7dd3fc"/></linearGradient></defs>${linea}${barras}</svg>
     <p class="cnote">${nota}</p></div>`;
 }
 /** Anillo con la distribución por categoría del mes elegido */
