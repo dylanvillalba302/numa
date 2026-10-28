@@ -450,6 +450,9 @@ svg.chart{width:100%;height:auto;display:block;overflow:visible}
 .dley .lr span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
 .dley .lr b{font-weight:700}
 .dley .lr.dim{opacity:.35}
+.catlist.cerrada{display:none}
+.vermas{display:block;width:100%;margin:0;padding:8px 10px 2px;border:0;background:none;color:var(--k-hero-lbl);font:600 13.5px/1.2 inherit;cursor:pointer}
+@media (min-width:960px){ .catlist.cerrada{display:block} .vermas{display:none} }
 /* Celular: más compacto arriba, para que el anillo de Categorías se vea entero al abrir */
 @media (max-width:759px){
   .top{padding:4px 0 6px}
@@ -1527,7 +1530,8 @@ function renderPanel(){
     <div class="card t-cat"><h3>Categorías
         <span class="seg"><button class="${ui.catTipo === 'Gasto' ? 'on' : ''}" data-act="cattipo" data-t="Gasto">Gastos</button><button class="${ui.catTipo === 'Ingreso' ? 'on' : ''}" data-act="cattipo" data-t="Ingreso">Ingresos</button></span></h3>
       ${graficoCategorias(arr, tot)}
-      ${catsHtml}
+      ${arr.length ? `<div class="catlist${ui.catAbierta ? '' : ' cerrada'}">${catsHtml}</div>
+      <button class="vermas" data-act="catver">${ui.catAbierta ? 'Ocultar detalle' : `Ver detalle de las ${arr.length} categorías`}</button>` : catsHtml}
     </div>
     ${tarjetaAhorro()}
     ${graficoMensual(todos)}
@@ -2251,6 +2255,7 @@ document.addEventListener('click', e => {
   else if (a === 'sync') { if (modo === 'demo') abrirAjustes(); else sincronizar(true); }
   else if (a === 'mes') { ui.mes = new Date(ui.mes.getFullYear(), ui.mes.getMonth() + Number(b.dataset.d), 1); ui.catSel = null; render(); }
   else if (a === 'cattipo') { ui.catTipo = b.dataset.t; ui.catSel = null; render(); }
+  else if (a === 'catver') { ui.catAbierta = !ui.catAbierta; render(); }
   else if (a === 'catsel') { ui.catSel = ui.catSel === b.dataset.n ? null : b.dataset.n; render(); }
   else if (a === 'mesir') { ui.mes = new Date(Number(b.dataset.y), Number(b.dataset.m), 1); ui.catSel = null; render(); }
   else if (a === 'authvista') { authVista = b.dataset.v; render(); }
