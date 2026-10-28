@@ -311,9 +311,9 @@ body.menu-open{overflow:hidden}
   .acc.i svg{background:var(--ing-bg);color:var(--ing)} .acc.g svg{background:var(--gas-bg);color:var(--gas)}
   .acc:hover{border-color:var(--accent)}
   body.en-app .vhead .icon-btn{display:none}
-  .tablero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);grid-template-areas:"hero cat" "disp cat" "aho cat" "mes cat";grid-template-rows:auto auto auto 1fr;gap:16px;align-items:start;margin-bottom:8px}
+  .tablero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);grid-template-areas:"hero cat" "disp cat" "tj cat" "aho cat" "mes cat";grid-template-rows:auto auto auto auto 1fr;gap:16px;align-items:start;margin-bottom:8px}
   .tablero > .card{margin:0}
-  .t-hero{grid-area:hero}.t-disp{grid-area:disp}.t-cat{grid-area:cat}.t-mes{grid-area:mes}.t-aho{grid-area:aho}
+  .t-hero{grid-area:hero}.t-disp{grid-area:disp}.t-tj{grid-area:tj}.t-cat{grid-area:cat}.t-mes{grid-area:mes}.t-aho{grid-area:aho}
   .hero .big{font-size:46px}
   .donut svg{width:220px;height:220px}
   .donut.dside svg{width:170px;height:auto}
@@ -450,6 +450,28 @@ svg.chart{width:100%;height:auto;display:block;overflow:visible}
 .dley .lr span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
 .dley .lr b{font-weight:700}
 .dley .lr.dim{opacity:.35}
+/* Tarjeta de crédito */
+.t-tj{padding:12px 14px!important;cursor:pointer}
+.t-tj .r{display:flex;align-items:center;gap:11px}
+.t-tj .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:rgba(167,139,250,.15);color:#a78bfa;flex:none}
+.t-tj .ic .i{width:18px;height:18px}
+.t-tj .tx{flex:1;min-width:0}
+.t-tj .tx small{display:block;color:var(--k-h3);font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.t-tj .tx b{font-size:17px;display:block;margin-top:1px}
+.t-tj .tx em{display:block;font-style:normal;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-tj .tjbtn{height:36px;padding:0 12px;border-radius:11px;border:1px solid var(--k-act-bd);background:var(--k-act);color:var(--k-act-tx);font:700 13px/1 inherit;flex:none;cursor:pointer}
+.tjbox{display:none;margin-top:10px;padding:12px;border-radius:14px;background:var(--k-field);border:1px solid var(--k-card-bd)}
+.tjbox .q{display:flex;align-items:center;justify-content:space-between}
+.tjbox .q > span:first-child{font-weight:650}
+.tjbox .st{display:flex;align-items:center;gap:12px}
+.tjbox .st button{width:34px;height:34px;border-radius:10px;background:var(--k-seg2);border:1px solid var(--k-card-bd);color:var(--k-hero-lbl);font-size:18px;cursor:pointer}
+.tjbox .st b{min-width:22px;text-align:center;font-size:17px}
+.tjbox .int{display:flex;align-items:center;gap:6px;margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--k-seg2);border:1px solid var(--k-card-bd)}
+.tjbox .int input{flex:1;border:0;outline:0;background:transparent;color:inherit;font:inherit;width:auto!important;text-align:left;min-width:0}
+.tjbox .res{margin:8px 2px 0;color:var(--muted);font-size:12.5px;line-height:1.4}
+.tjbox .res b{color:var(--text)}
+.tjbox .res .itx{color:var(--gas);font-weight:700}
+
 /* Últimos meses */
 .t-mes .mbox{background:var(--k-mini);border:1px solid var(--k-mini-bd);border-radius:18px;padding:12px 10px 10px}
 .t-mes .mpill{font-size:11.5px;font-weight:700;letter-spacing:0;text-transform:none;padding:4px 9px;border-radius:99px;background:var(--k-seg-on);color:var(--k-seg-on-tx)}
@@ -643,6 +665,7 @@ const DEF_CATS = [
   ['Ingreso','Sueldo','💼'],['Ingreso','Extra','💸'],['Ingreso','Ventas','🏷️'],['Ingreso','Reintegro','↩️'],['Ingreso','Regalo','🎁'],['Ingreso','Otros','📦']
 ].map(([tipo,nombre,icono]) => ({tipo,nombre,icono}));
 const MEDIOS = [['Efectivo','billete'],['Transferencia','banco']];
+const MEDIOS_GASTO = MEDIOS.concat([['Tarjeta','tarjeta']]);   // la tarjeta de crédito solo existe para gastos
 
 /* Íconos de línea (24x24, trazo). Las categorías se dibujan con su color propio. */
 const ICONS = {
@@ -650,6 +673,7 @@ const ICONS = {
   cubiertos:'<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
   colectivo:'<path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/>',
   alcancia:'<path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/><path d="M2 9v1c0 1.1.9 2 2 2h1"/><path d="M16 11h.01"/>',
+  tarjeta:'<rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/>',
   rayo:'<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>',
   casa:'<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
   salud:'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>',
@@ -868,7 +892,9 @@ function interpretarFrase(texto, categorias){
   if (mejor) out.monto = Math.round(mejor.n * 100) / 100;
 
   out.moneda = CON_DOLARES && /(^|\s)(usd|u\$s|us\$|u\$d|dolar|dolares|dolarcitos|verdes?)(\s|$)/.test(s) ? 'USD' : 'ARS';
-  out.medio = /\b(transf\w*|mp|mercado ?pago|banco|debito|tarjeta|cvu|cbu|alias|qr|uala|brubank|naranja x)\b/.test(s) ? 'Transferencia' : 'Efectivo';
+  out.medio = /\b(debito)\b/.test(s) ? 'Transferencia'
+    : /\b(tarjeta|credito|visa|master\w*|amex|cuotas?)\b/.test(s) ? 'Tarjeta'
+    : /\b(transf\w*|mp|mercado ?pago|banco|cvu|cbu|alias|qr|uala|brubank|naranja x)\b/.test(s) ? 'Transferencia' : 'Efectivo';
 
   const propias = categorias.filter(c => c.tipo === out.tipo);
   let cat = propias.find(c => s.includes(' ' + sinAcentos(c.nombre).toLowerCase() + ' '));
@@ -901,7 +927,7 @@ let syncing = false, lastError = null;
 let animarEntrada = true;   // movimiento de bienvenida, solo la primera vez que se ve el panel
 let animHasta = 0, renderPend = null;
 
-function vacio(){ return {movimientos:[], categorias:null, perfil:null, queue:[], revisar:[], fijos:[], ahorros:[], frascos:[], actualizado:null}; }
+function vacio(){ return {movimientos:[], categorias:null, perfil:null, queue:[], revisar:[], fijos:[], ahorros:[], frascos:[], pagosTj:[], actualizado:null}; }
 function clave(){ return 'numa_' + (modo === 'demo' ? 'demo' : (user && user.id)); }
 function cargarLocal(){ D = Object.assign(vacio(), LS.get(clave(), {})); }
 function guardar(){ if (modo === 'demo' || user) LS.set(clave(), D); }
@@ -920,11 +946,31 @@ function saldos(){
   const s = {Efectivo: 0, Transferencia: 0, USD: 0, hayUSD: false};
   movimientos().forEach(m => {
     const v = (m.tipo === 'Ingreso' ? 1 : -1) * Number(m.monto);
+    if (m.medio === 'Tarjeta') return;                       // se paga después, con el resumen
     if (esUSD(m)) { s.USD += v; s.hayUSD = true; } else s[m.medio] = (s[m.medio] || 0) + v;
   });
+  pagosTj().forEach(p => { s[p.medio] = (s[p.medio] || 0) - Number(p.monto); });
   // lo que se separa para ahorro sale del disponible (y vuelve si se saca), sin contar como gasto
   ahorros().forEach(a => { s[a.medio] = (s[a.medio] || 0) + (a.tipo === 'Guardar' ? -1 : 1) * Number(a.monto); });
   return s;
+}
+
+/* ---------- Tarjeta de crédito: las compras se deben hasta que se paga el resumen ---------- */
+function pagosTj(){
+  const dels = new Set(D.queue.filter(o => o.op === 'tjdel').map(o => o.id));
+  const pend = D.queue.filter(o => o.op === 'tjpago').map(o => ({...o.item, pendiente: true}));
+  const ids = new Set(pend.map(p => p.id));
+  return (D.pagosTj || []).filter(p => !dels.has(p.id) && !ids.has(p.id)).concat(pend)
+    .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+}
+function estadoTarjeta(){
+  const ahora = Date.now(), ini = primerDia(new Date()).getTime();
+  const cargos = movimientos().filter(m => m.medio === 'Tarjeta' && m.tipo === 'Gasto');
+  let hasta = 0, futuras = 0, delMes = 0;
+  cargos.forEach(m => { const t = new Date(m.fecha).getTime(), v = ars(m); if (t <= ahora) { hasta += v; if (t >= ini) delMes += v; } else futuras += v; });
+  const pagos = pagosTj(), pagado = pagos.reduce((a, p) => a + Number(p.monto), 0);
+  const aPagar = Math.max(0, Math.round((hasta - pagado) * 100) / 100);
+  return {aPagar, futuras, delMes: Math.min(delMes, aPagar), anteriores: Math.max(0, aPagar - delMes), pagos, mostrar: cargos.length > 0 || pagos.length > 0};
 }
 
 /* ---------- Ahorro: plata separada del disponible, con meta opcional ---------- */
@@ -1039,6 +1085,16 @@ async function sincronizar(manual){
       const {error} = await sb.from('fijos').delete().in('id', fd);
       if (error) throw error;
     }
+    const tp = enviados.filter(o => o.op === 'tjpago').map(o => ({id: o.item.id, fecha: o.item.fecha, monto: o.item.monto, medio: o.item.medio, nota: o.item.nota || ''}));
+    if (tp.length) {
+      const {error} = await sb.from('tarjeta_pagos').upsert(tp, {onConflict: 'user_id,id', ignoreDuplicates: true});
+      if (error) throw error;
+    }
+    const tpd = enviados.filter(o => o.op === 'tjdel').map(o => o.id);
+    if (tpd.length) {
+      const {error} = await sb.from('tarjeta_pagos').delete().in('id', tpd);
+      if (error) throw error;
+    }
     const ah = enviados.filter(o => o.op === 'aho').map(o => {
       const a = o.item;
       return {id: a.id, fecha: a.fecha, tipo: a.tipo, monto: a.monto, medio: a.medio, nota: a.nota || '', frasco: a.frasco || 'general'};
@@ -1124,6 +1180,9 @@ async function sincronizar(manual){
     if (mts.error) throw mts.error;
     D.ahorros = ahs.data.map(a => ({...a, monto: Number(a.monto)}));
     D.frascos = mts.data.map(f => ({...f, meta: Number(f.meta) || null}));
+    const tjs = await sb.from('tarjeta_pagos').select('id, fecha, monto, medio, nota').order('fecha', {ascending: false}).limit(5000);
+    if (tjs.error) throw tjs.error;
+    D.pagosTj = tjs.data.map(p => ({...p, monto: Number(p.monto)}));
     if (generarFijos()) setTimeout(() => sincronizar(), 300);
     D.actualizado = new Date().toISOString();
     lastError = null; guardar();
@@ -1180,6 +1239,8 @@ function aplicarDemo(){
     else if (o.op === 'del') D.movimientos = D.movimientos.filter(m => m.id !== o.id);
     else if (o.op === 'edit') D.movimientos = D.movimientos.map(m => m.id === o.item.id ? o.item : m);
     else if (o.op === 'aho') (D.ahorros = D.ahorros || []).push(o.item);
+    else if (o.op === 'tjpago') (D.pagosTj = D.pagosTj || []).push(o.item);
+    else if (o.op === 'tjdel') D.pagosTj = (D.pagosTj || []).filter(p => p.id !== o.id);
     else if (o.op === 'ahodel') D.ahorros = (D.ahorros || []).filter(a => a.id !== o.id);
     else if (o.op === 'frasco') D.frascos = (D.frascos || []).filter(f => f.id !== o.item.id).concat([o.item]);
     else if (o.op === 'frascodel') D.frascos = (D.frascos || []).filter(f => f.id !== o.id);
@@ -1439,6 +1500,13 @@ function graficoCategorias(arr, tot){
 }
 
 
+function tarjetaCredito(){
+  const e = estadoTarjeta(); if (!e.mostrar) return '';
+  return `<div class="card t-tj" data-act="tjpagar">
+    <div class="r"><span class="ic">${ico('tarjeta')}</span>
+      <div class="tx"><small>Tarjeta de crédito</small><b class="num" data-cuenta="${e.aPagar}">${money(e.aPagar)}</b><em>a pagar${e.futuras ? ` · ${money(e.futuras)} en cuotas que vienen` : ''}</em></div>
+      ${e.aPagar > 0 ? '<button class="tjbtn" data-act="tjpagar">Pagar resumen</button>' : ''}</div></div>`;
+}
 function tarjetaAhorro(){
   const t = totalAhorro(), fs = frascos();
   const detalle = fs.length > 1 || fs.some(f => f.meta);
@@ -1548,6 +1616,7 @@ function renderPanel(){
       ${arr.length ? `<div class="catlist${ui.catAbierta ? '' : ' cerrada'}">${catsHtml}</div>
       <button class="vermas" data-act="catver">${ui.catAbierta ? 'Ocultar detalle' : `Ver detalle de las ${arr.length} categorías`}</button>` : catsHtml}
     </div>
+    ${tarjetaCredito()}
     ${tarjetaAhorro()}
     ${graficoMensual(todos)}
     </div>
@@ -1708,7 +1777,7 @@ function abrirFormFijo(pre){
     </div>
     <div class="lbl2">Categoría</div><div class="chips" id="xCats"></div><input class="field" id="xCatOtra" placeholder="¿Qué es? Escribilo y queda como categoría nueva" maxlength="40" autocomplete="off" enterkeyhint="done" style="display:none;margin-top:8px">
     <div class="lbl2">Medio</div>
-    <div class="seg big" id="xMedio">${MEDIOS.map(([m, ic]) => `<button data-m="${m}">${ico(ic)} ${m}</button>`).join('')}</div>
+    <div class="seg big" id="xMedio">${MEDIOS_GASTO.map(([m, ic]) => `<button data-m="${m}">${ico(ic)} ${m}</button>`).join('')}</div>
     <div class="lbl2">Día del mes en que se carga</div>
     <div class="diasel"><button type="button" data-d="-1" aria-label="Un día antes">−</button><b id="xDia" class="num">${pre.dia || hoyDia}</b><button type="button" data-d="1" aria-label="Un día después">+</button></div>
     <p class="msg" style="color:var(--muted);text-align:center">Si el mes tiene menos días, se carga el último día.</p>
@@ -1724,7 +1793,8 @@ function abrirFormFijo(pre){
   const pintar = () => {
     s.dataset.tipo = st.tipo;
     s.querySelectorAll('#xTipo button').forEach(b => b.classList.toggle('on', b.dataset.t === st.tipo));
-    s.querySelectorAll('#xMedio button').forEach(b => b.classList.toggle('on', b.dataset.m === st.medio));
+    if (st.tipo !== 'Gasto' && st.medio === 'Tarjeta') st.medio = 'Transferencia';
+    s.querySelectorAll('#xMedio button').forEach(b => { b.classList.toggle('on', b.dataset.m === st.medio); b.style.display = b.dataset.m === 'Tarjeta' && st.tipo !== 'Gasto' ? 'none' : ''; });
     const lista = cats().filter(c => c.tipo === st.tipo);
     if (!lista.find(c => c.nombre === st.cat)) st.cat = lista[0]?.nombre || 'Otros';
     $('#xCats', s).innerHTML = lista.map(c =>
@@ -1852,14 +1922,19 @@ function cerrarSheet(){ document.body.classList.remove('sheet-open'); document.a
 
 function abrirForm(tipo, pre){
   pre = pre || {};
-  const st = {tipo: pre.tipo || tipo, medio: pre.medio || LS.get('numa_medio', 'Efectivo'), cat: pre.categoria || null, moneda: pre.moneda || 'ARS'};
+  const st = {tipo: pre.tipo || tipo, medio: pre.medio || LS.get('numa_medio', 'Efectivo'), cat: pre.categoria || null, moneda: pre.moneda || 'ARS', cuotas: 1};
   const s = abrirSheet(`
     <div class="seg big" id="fTipo"><button data-t="Gasto">Gasto</button><button data-t="Ingreso">Ingreso</button></div>
     <label class="amount">${CON_DOLARES ? '<button type="button" class="mon" id="fMon" data-mon="1" aria-label="Cambiar moneda">$</button>' : '<span class="mon" id="fMon" style="border-bottom:0">$</span>'}<input id="fMonto" inputmode="decimal" autocomplete="off" placeholder="0" enterkeyhint="done" aria-label="Monto"></label>
     <div class="hint" id="fHint">&nbsp;</div>
     <div class="lbl2">Categoría</div><div class="chips" id="fCats"></div><input class="field" id="fCatOtra" placeholder="¿Qué es? Escribilo y queda como categoría nueva" maxlength="40" autocomplete="off" enterkeyhint="done" style="display:none;margin-top:8px">
     <div class="lbl2">Medio</div>
-    <div class="seg big" id="fMedio">${MEDIOS.map(([m, ic]) => `<button data-m="${m}">${ico(ic)} ${m}</button>`).join('')}</div>
+    <div class="seg big" id="fMedio">${MEDIOS_GASTO.map(([m, ic]) => `<button data-m="${m}">${ico(ic)} ${m}</button>`).join('')}</div>
+    <div class="tjbox" id="fTj">
+      <div class="q"><span>Cuotas</span><span class="st"><button type="button" data-q="-1" aria-label="Menos cuotas">−</button><b id="fQ">1</b><button type="button" data-q="1" aria-label="Más cuotas">+</button></span></div>
+      <label class="int" id="fIntW"><span style="color:var(--muted)">$</span><input id="fTotInt" inputmode="decimal" autocomplete="off" placeholder="Total con interés (opcional)"></label>
+      <p class="res" id="fTjRes"></p>
+    </div>
     <div class="lbl2">Detalle</div>
     <input class="field" id="fNota" placeholder="Nota (opcional)" maxlength="120" autocomplete="off" enterkeyhint="done">
     <input class="field" id="fFecha" type="datetime-local" aria-label="Fecha y hora">
@@ -1874,7 +1949,9 @@ function abrirForm(tipo, pre){
   const pintar = () => {
     s.dataset.tipo = st.tipo;
     s.querySelectorAll('#fTipo button').forEach(b => b.classList.toggle('on', b.dataset.t === st.tipo));
-    s.querySelectorAll('#fMedio button').forEach(b => b.classList.toggle('on', b.dataset.m === st.medio));
+    if (st.tipo !== 'Gasto' && st.medio === 'Tarjeta') st.medio = 'Transferencia';
+    s.querySelectorAll('#fMedio button').forEach(b => { b.classList.toggle('on', b.dataset.m === st.medio); b.style.display = b.dataset.m === 'Tarjeta' && st.tipo !== 'Gasto' ? 'none' : ''; });
+    pintarTj();
     const lista = cats().filter(c => c.tipo === st.tipo);
     if (!lista.find(c => c.nombre === st.cat)) st.cat = lista[0]?.nombre || 'Otros';
     $('#fCats', s).innerHTML = lista.map(c =>
@@ -1884,11 +1961,33 @@ function abrirForm(tipo, pre){
     $('#fMon', s).textContent = st.moneda === 'USD' ? 'US$' : '$';
     $('#fMon', s).classList.toggle('usd', st.moneda === 'USD');
   };
+  const totInt = $('#fTotInt', s);
+  const leerInt = campoMonto(totInt);
+  const leerMonto = () => parseFloat(monto.value.replace(/\./g, '').replace(',', '.')) || 0;
+  function pintarTj(){
+    const box = $('#fTj', s); if (!box) return;
+    const ver = st.medio === 'Tarjeta' && st.tipo === 'Gasto' && !pre.editar;
+    box.style.display = ver ? 'block' : 'none';
+    if (!ver) return;
+    $('#fQ', s).textContent = st.cuotas;
+    $('#fIntW', s).style.display = st.cuotas > 1 ? '' : 'none';
+    const n = leerMonto(), ti = st.cuotas > 1 ? (leerInt() || 0) : 0, tot = ti > n ? ti : n;
+    let txt = 'Se suma al resumen de la tarjeta. Tu disponible no baja hasta que lo pagues.';
+    if (st.cuotas > 1) {
+      txt = `${st.cuotas} cuotas de <b>${money(tot / st.cuotas)}</b>`
+        + (n && ti > n ? ` · <span class="itx">Interés: ${money(ti - n)} (${Math.round((ti - n) / n * 100)}%)</span>` : ' · sin interés')
+        + '. Se suma una por mes al resumen.';
+    }
+    $('#fTjRes', s).innerHTML = txt;
+  }
+  totInt.addEventListener('input', pintarTj);
+  monto.addEventListener('input', pintarTj);
   pintar(); ancho();
 
   s.onclick = e => {
     const b = e.target.closest('button'); if (!b) return;
-    if (b.dataset.t) { st.tipo = b.dataset.t; pintar(); }
+    if (b.dataset.q) { st.cuotas = Math.max(1, Math.min(48, st.cuotas + Number(b.dataset.q))); pintarTj(); }
+    else if (b.dataset.t) { st.tipo = b.dataset.t; pintar(); }
     else if (b.dataset.m) { st.medio = b.dataset.m; LS.set('numa_medio', st.medio); pintar(); }
     else if (b.dataset.mon) { st.moneda = st.moneda === 'USD' ? 'ARS' : 'USD'; pintar(); monto.focus(); }
     else if (b.dataset.cat !== undefined) { st.cat = b.dataset.cat; pintar(); if (st.cat === 'Otros') { const o = s.querySelector('[id$="CatOtra"]'); if (o) o.focus(); } }
@@ -1917,6 +2016,21 @@ function abrirForm(tipo, pre){
     const item = {id: pre.id || uid(), fecha: (isNaN(f) ? new Date() : f).toISOString(), tipo: st.tipo,
       monto: Math.round(n * 100) / 100, moneda: st.moneda, categoria: catElegida(st, s, 'f'), medio: st.medio,
       nota: $('#fNota', s).value.trim(), origen: pre.editar ? (pre.origen || 'App') : pre.id ? 'Atajo' : 'App'};
+    if (st.medio === 'Tarjeta' && st.tipo === 'Gasto' && !pre.editar && st.cuotas > 1) {
+      // compra en cuotas: una cuota por mes, cada una en su mes (con el interés repartido si lo hay)
+      const ti = leerInt() || 0, total = Math.round((ti > n ? ti : n) * 100) / 100, N = st.cuotas;
+      const base = Math.floor(total / N * 100) / 100, f0 = new Date(item.fecha), grupo = uid();
+      for (let k = 0; k < N; k++) {
+        const fk = new Date(f0.getFullYear(), f0.getMonth() + k, Math.min(f0.getDate(), new Date(f0.getFullYear(), f0.getMonth() + k + 1, 0).getDate()), f0.getHours(), f0.getMinutes());
+        const mk = k === N - 1 ? Math.round((total - base * (N - 1)) * 100) / 100 : base;
+        D.queue.push({op: 'add', item: {...item, id: `${grupo}-c${k + 1}`, fecha: fk.toISOString(), monto: mk,
+          nota: [item.nota, `cuota ${k + 1} de ${N}`].filter(Boolean).join(' · ')}});
+      }
+      if (modo === 'demo') aplicarDemo();
+      guardar(); ui.mes = primerDia(f0); cerrarSheet(); render();
+      toast(`✓ Compra en ${N} cuotas de ${money(total / N)} guardada`); sincronizar();
+      return;
+    }
     if (pre.editar) {
       // si todavía no se había enviado, se reemplaza en la cola; si ya estaba en la cuenta, se manda el cambio
       const i = D.queue.findIndex(o => o.op === 'add' && o.item.id === item.id);
@@ -1932,6 +2046,51 @@ function abrirForm(tipo, pre){
     sincronizar();
   }
   if (!pre.monto && !pre.editar) monto.focus({preventScroll: true});
+}
+
+/* ---------- Tarjeta: pagar el resumen ---------- */
+function abrirPagoTarjeta(){
+  const e = estadoTarjeta();
+  const st = {medio: 'Transferencia'};
+  const s = abrirSheet(`
+    <h2>Tarjeta de crédito</h2>
+    <div class="aho-big num">${money(e.aPagar)}</div>
+    <div class="aho-sub">Es lo que debés hoy en la tarjeta${e.futuras ? ` · y ${money(e.futuras)} en cuotas que vienen` : ''}</div>
+    <div class="card" style="padding:4px 16px;margin:0 0 6px">
+      <div class="kv"><span>Compras de este mes</span><b>${money(e.delMes)}</b></div>
+      <div class="kv"><span>De meses anteriores</span><b>${money(e.anteriores)}</b></div></div>
+    <div class="lbl2">¿Cuánto pagás?</div>
+    <label class="amount" style="margin-top:4px"><span>$</span><input id="pMonto" inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Monto a pagar"></label>
+    <div class="hint" id="pHint">Podés pagar el total o una parte</div>
+    <div class="lbl2">¿Con qué pagás?</div>
+    <div class="seg big" id="pMedio">${MEDIOS.map(([m, ic]) => `<button data-m="${m}">${ico(ic)} ${m}</button>`).join('')}</div>
+    <button class="primary" id="pGuardar" style="margin-top:16px">Pagar</button>
+    <p class="msg" style="color:var(--muted);text-align:center;font-size:12.5px">Baja tu disponible y lo que debés en la tarjeta. No cuenta como gasto nuevo.</p>
+    ${e.pagos.length ? `<div class="lbl2">Pagos anteriores</div><div class="card" style="padding:2px 14px;margin:0">${e.pagos.slice(0, 24).map(p => `
+      <div class="aho-row"><div><b class="num">${money(p.monto)}</b><small>${esc([p.medio, new Date(p.fecha).toLocaleDateString('es-AR', {day: 'numeric', month: 'short', year: 'numeric'})].join(' · '))}${p.pendiente ? ' · pendiente' : ''}</small></div>
+        <button class="x" data-pdel="${esc(p.id)}">Borrar</button></div>`).join('')}</div>` : ''}`);
+  const m = $('#pMonto', s), hint = $('#pHint', s);
+  const leer = campoMonto(m, hint);
+  if (e.aPagar > 0) { m.value = String(e.aPagar).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.'); m.dispatchEvent(new Event('input')); }
+  const pintar = () => s.querySelectorAll('#pMedio button').forEach(b => b.classList.toggle('on', b.dataset.m === st.medio));
+  pintar();
+  s.onclick = ev => {
+    const b = ev.target.closest('button'); if (!b) return;
+    if (b.dataset.m) { st.medio = b.dataset.m; pintar(); }
+    else if (b.id === 'pGuardar') {
+      const n = leer();
+      if (!(n > 0)) { m.classList.remove('shake'); void m.offsetWidth; m.classList.add('shake'); hint.textContent = 'Ingresá cuánto pagás'; m.focus(); return; }
+      D.queue.push({op: 'tjpago', item: {id: uid(), fecha: new Date().toISOString(), monto: Math.round(n * 100) / 100, medio: st.medio, nota: ''}});
+      if (modo === 'demo') aplicarDemo();
+      guardar(); cerrarSheet(); render(); toast(`✓ Pagaste ${money(n)} de la tarjeta`); sincronizar();
+    }
+  };
+  s.querySelectorAll('[data-pdel]').forEach(btn => confirmarConDobleToque(btn, '¿Seguro?', () => {
+    const id = btn.dataset.pdel, i = D.queue.findIndex(o => o.op === 'tjpago' && o.item.id === id);
+    if (i >= 0) D.queue.splice(i, 1); else D.queue.push({op: 'tjdel', id});
+    if (modo === 'demo') aplicarDemo();
+    guardar(); render(); sincronizar(); abrirPagoTarjeta(); toast('Pago borrado');
+  }));
 }
 
 /* ---------- Ahorro: formularios ---------- */
@@ -2280,6 +2439,7 @@ document.addEventListener('click', e => {
   else if (a === 'atajo') instalarAtajo(b.dataset.f);
   else if (a === 'atajogo') descargarAtajo(b.dataset.f);
   else if (a === 'conectar') conectarAtajos(b.dataset.n);
+  else if (a === 'tjpagar') abrirPagoTarjeta();
   else if (a === 'ahonuevo') abrirAhorroForm(b.dataset.t, b.dataset.f);
   else if (a === 'frver') abrirFrasco(b.dataset.f);
   else if (a === 'frnuevo') abrirFrascoEdit();
