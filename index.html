@@ -460,6 +460,9 @@ svg.chart{width:100%;height:auto;display:block;overflow:visible}
 .t-tj .tx b{font-size:17px;display:block;margin-top:1px}
 .t-tj .tx em{display:block;font-style:normal;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .t-tj .tjbtn{height:36px;padding:0 12px;border-radius:11px;border:1px solid var(--k-act-bd);background:var(--k-act);color:var(--k-act-tx);font:700 13px/1 inherit;flex:none;cursor:pointer}
+.t-tj .tjrows{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.t-tj .tjrows div{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted)}
+.t-tj .tjrows b{color:var(--text);font-size:13px}
 .tjbox{display:none;margin-top:10px;padding:12px;border-radius:14px;background:var(--k-field);border:1px solid var(--k-card-bd)}
 .tjbox .q{display:flex;align-items:center;justify-content:space-between}
 .tjbox .q > span:first-child{font-weight:650}
@@ -978,7 +981,7 @@ const tarjetaPorId = id => tarjetas().find(t => t.id === (id || 'principal'));
 function tarjetaPorTexto(txt){
   const k = sinAcentos(String(txt || '')).toLowerCase();
   const t = tarjetas().find(t => t.nombre && k.includes(sinAcentos(t.nombre).toLowerCase()))
-    || tarjetas().find(t => sinAcentos(t.nombre || '').toLowerCase().split(/\s+/).some(w => w.length > 3 && k.includes(w)));
+    || tarjetas().find(t => sinAcentos(t.nombre || '').toLowerCase().split(/\s+/).some(w => w.length > 3 && (k.includes(w) || k.split(/[^a-z0-9]+/).some(p => p.length >= 4 && w.startsWith(p)))));
   return t ? t.id : null;
 }
 function estadoTarjetas(){
@@ -1503,7 +1506,7 @@ function graficoMensual(todos){
   const linea = prom ? `<line x1="2" x2="${W - 2}" y1="${y(prom)}" y2="${y(prom)}" class="avg"/>` : '';
   const vSel = iSel >= 0 ? vals[iSel] : 0;
   let pill = '';
-  if (prom && iSel >= 0 && vSel) {
+  if (prom && iSel >= 0 && vSel && conDatos.length > 1) {
     const dif = Math.round((vSel - prom) / prom * 100);
     pill = Math.abs(dif) < 3 ? `<span class="mpill">= promedio</span>`
       : `<span class="mpill ${dif > 0 ? 'mas' : 'menos'}">${dif > 0 ? '▲' : '▼'} ${Math.abs(dif)}% vs. promedio</span>`;
@@ -1544,12 +1547,13 @@ function graficoCategorias(arr, tot){
 function tarjetaCredito(){
   const e = estadoTarjetas(); if (!e.mostrar) return '';
   const varias = e.lista.length > 1, t0 = e.lista[0];
-  const detalle = varias ? e.lista.map(t => `${esc(t.nombre)} ${money(t.aPagar)}`).join(' · ')
+  const detalle = varias ? `a pagar en total${e.futuras ? ` · ${money(e.futuras)} en cuotas que vienen` : ''}`
     : `a pagar${e.futuras ? ` · ${money(e.futuras)} en cuotas que vienen` : ''}`;
+  const filas = varias ? `<div class="tjrows">${e.lista.map(t => `<div><span>${esc(t.nombre)}</span><b class="num">${money(t.aPagar)}</b></div>`).join('')}</div>` : '';
   return `<div class="card t-tj" data-act="tjpagar">
     <div class="r"><span class="ic">${ico('tarjeta')}</span>
       <div class="tx"><small>${varias ? 'Tarjetas de crédito' : esc(t0.nombre)}</small><b class="num" data-cuenta="${e.aPagar}">${money(e.aPagar)}</b><em>${detalle}</em></div>
-      ${e.aPagar > 0 ? '<button class="tjbtn" data-act="tjpagar">Pagar resumen</button>' : ''}</div></div>`;
+      ${e.aPagar > 0 ? '<button class="tjbtn" data-act="tjpagar">Pagar resumen</button>' : ''}</div>${filas}</div>`;
 }
 function tarjetaAhorro(){
   const t = totalAhorro(), fs = frascos();
