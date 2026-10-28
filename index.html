@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Numa">
-<meta name="theme-color" content="#0a0e15">
+<meta name="theme-color" content="#000000">
 <meta name="format-detection" content="telephone=no, email=no, address=no, date=no">
 <meta name="description" content="Numa: registrá tus ingresos y gastos en segundos, aunque no tengas señal.">
 <link rel="manifest" href="manifest.json">
@@ -20,7 +20,7 @@ if(cl)document.querySelector('link[rel="apple-touch-icon"]').setAttribute('href'
 <script>try{var t=localStorage.getItem('numa_tema');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 <style>
 :root{
-  --bg:#0a0e15; --bg2:#0f141d; --card:#141a25; --card2:#1b2331; --line:rgba(255,255,255,.07);
+  --bg:#000000; --bg2:#0b0b0d; --card:#111114; --card2:#1a1a1e; --line:rgba(255,255,255,.07);
   --text:#eef2f8; --muted:#8b96a8; --faint:#5d6879;
   --ing:#34d399; --ing-bg:rgba(52,211,153,.12);
   --gas:#fb7185; --gas-bg:rgba(251,113,133,.12);
@@ -459,15 +459,15 @@ svg.i{width:20px;height:20px;flex:none;display:block}
    Estilo "pulido con celeste" (oscuro y claro usan las mismas reglas)
    ===================================================================== */
 :root{
-  --k-card:linear-gradient(180deg,#161d2a,#121823); --k-card-bd:rgba(56,189,248,.10);
-  --k-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 12px 30px rgba(0,0,0,.25);
-  --k-hero:radial-gradient(110% 90% at 100% 0%,rgba(56,189,248,.30),transparent 60%),radial-gradient(80% 70% at 0% 100%,rgba(37,99,235,.20),transparent 60%),linear-gradient(180deg,#14213a,#111a2c);
-  --k-hero-bd:rgba(56,189,248,.22); --k-hero-lbl:#7dd3fc; --k-h3:#bae6fd;
-  --k-mini:rgba(255,255,255,.035); --k-mini-bd:rgba(255,255,255,.05);
-  --k-ic-bg:rgba(56,189,248,.13); --k-ic:#38bdf8; --k-seg:var(--card2); --k-seg-on:rgba(56,189,248,.16); --k-seg-on-tx:#7dd3fc;
-  --k-sheet:linear-gradient(180deg,#121a28,#0d131d); --k-sheet-bd:rgba(56,189,248,.28); --k-field:#141c2a; --k-seg2:#0b1220; --k-chip-on-tx:#e0f2fe;
-  --k-bar:rgba(56,189,248,.22); --k-auth:radial-gradient(90% 50% at 50% 0%,rgba(56,189,248,.28),transparent 70%),radial-gradient(70% 40% at 100% 100%,rgba(37,99,235,.22),transparent 70%),#070b13;
-  --k-track:#2a3446; --k-act:#0f2236; --k-act-bd:rgba(56,189,248,.38); --k-act-tx:#e0f2fe; --k-act-sh:0 8px 24px rgba(0,0,0,.35);
+  --k-card:#111114; --k-card-bd:rgba(255,255,255,.06);
+  --k-shadow:none;
+  --k-hero:radial-gradient(120% 100% at 100% 0%,rgba(56,189,248,.22),transparent 55%),#111114;
+  --k-hero-bd:rgba(56,189,248,.25); --k-hero-lbl:#7dd3fc; --k-h3:#bae6fd;
+  --k-mini:#1a1a1e; --k-mini-bd:transparent;
+  --k-ic-bg:rgba(56,189,248,.12); --k-ic:#38bdf8; --k-seg:#1a1a1e; --k-seg-on:rgba(56,189,248,.16); --k-seg-on-tx:#7dd3fc;
+  --k-sheet:linear-gradient(180deg,#121215,#0b0b0d); --k-sheet-bd:rgba(56,189,248,.28); --k-field:#17171b; --k-seg2:#0b0b0d; --k-chip-on-tx:#e0f2fe;
+  --k-bar:rgba(56,189,248,.22); --k-auth:radial-gradient(90% 50% at 50% 0%,rgba(56,189,248,.28),transparent 70%),radial-gradient(70% 40% at 100% 100%,rgba(37,99,235,.18),transparent 70%),#000;
+  --k-track:#26262b; --k-act:#141417; --k-act-bd:rgba(56,189,248,.35); --k-act-tx:#e0f2fe; --k-act-sh:0 8px 24px rgba(0,0,0,.35);
 }
 @media (prefers-color-scheme:light){ :root:not([data-theme="dark"]){
   --k-card:linear-gradient(180deg,#ffffff,#fbfdff); --k-card-bd:rgba(56,189,248,.18);
@@ -1512,7 +1512,7 @@ function aplicarTema(t){
   if (t === 'light' || t === 'dark') r.setAttribute('data-theme', t); else r.removeAttribute('data-theme');
   const oscuro = t === 'dark' || (t === 'auto' && !(window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches));
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', oscuro ? '#0a0e15' : '#f2f6fb');
+  if (meta) meta.setAttribute('content', oscuro ? '#000000' : '#f2f6fb');
   const ic = document.querySelector('link[rel="apple-touch-icon"]'); if (ic) ic.setAttribute('href', oscuro ? 'apple-touch-icon.png' : 'apple-touch-icon-claro.png');
 }
 
