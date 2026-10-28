@@ -450,6 +450,20 @@ svg.chart{width:100%;height:auto;display:block;overflow:visible}
 .dley .lr span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
 .dley .lr b{font-weight:700}
 .dley .lr.dim{opacity:.35}
+/* Últimos meses */
+.t-mes .mbox{background:var(--k-mini);border:1px solid var(--k-mini-bd);border-radius:18px;padding:12px 10px 10px}
+.t-mes .mpill{font-size:11.5px;font-weight:700;letter-spacing:0;text-transform:none;padding:4px 9px;border-radius:99px;background:var(--k-seg-on);color:var(--k-seg-on-tx)}
+.t-mes .mpill.mas{background:var(--gas-bg);color:var(--gas)}
+.t-mes .mpill.menos{background:var(--ing-bg);color:var(--ing)}
+#main .t-mes .chart .bg{fill:rgba(127,127,127,.07)}
+#main .t-mes .chart .vl{font:600 9.5px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;fill:var(--muted)}
+#main .t-mes .chart .mb.sel .vl{fill:var(--text);font-weight:800;font-size:10.5px}
+#main .t-mes .chart .avg{stroke:var(--k-hero-lbl);stroke-dasharray:2 4;opacity:.55}
+.t-mes .mleg{display:flex;justify-content:center;margin-top:8px}
+.t-mes .mleg span{display:inline-flex;align-items:center;gap:6px}
+.t-mes .mleg .lavg{width:18px;border-top:2px dashed var(--k-hero-lbl)}
+.t-mes .mprom{font-size:13.5px;color:var(--muted);padding:5px 12px;border-radius:99px;background:var(--k-seg-on)}
+.t-mes .mprom b{color:var(--text);font-weight:800;font-size:14.5px;margin-left:2px}
 .catlist.cerrada{display:none}
 .vermas{display:block;width:100%;margin:0;padding:8px 10px 2px;border:0;background:none;color:var(--k-hero-lbl);font:600 13.5px/1.2 inherit;cursor:pointer}
 @media (min-width:960px){ .catlist.cerrada{display:block} .vermas{display:none} }
@@ -1369,32 +1383,32 @@ function graficoMensual(todos){
   const conDatos = vals.filter(v => v > 0);
   const prom = conDatos.length ? conDatos.reduce((a, b) => a + b, 0) / conDatos.length : 0;
   const max = Math.max(...vals, prom, 1);
-  const W = 320, H = 150, top = 26, base = 122, bw = 30, paso = W / 6;
+  const W = 320, H = 158, top = 24, base = 128, bw = 34, paso = W / 6, rr = 9;
   const y = v => base - (v / max) * (base - top);
   const iSel = meses.findIndex(m => mismoMes(m, ui.mes));
   let barras = '';
   vals.forEach((v, i) => {
-    const x = i * paso + (paso - bw) / 2, h = Math.max(v > 0 ? 3 : 0, base - y(v)), sel = i === iSel;
+    const x = i * paso + (paso - bw) / 2, h = Math.max(v > 0 ? 4 : 0, base - y(v)), sel = i === iSel, r = Math.min(rr, h);
     const mes = meses[i].toLocaleDateString('es-AR', {month: 'short'}).replace('.', '');
     barras += `<g class="mb ${sel ? 'sel' : ''}" data-act="mesir" data-y="${meses[i].getFullYear()}" data-m="${meses[i].getMonth()}" role="button" aria-label="${esc(etiquetaMes(meses[i]))}: ${money(v)}">
       <title>${esc(etiquetaMes(meses[i]))}: ${money(v)}</title>
       <rect x="${i * paso}" y="0" width="${paso}" height="${H}" fill="transparent"/>
-      ${h ? `<path d="M${x} ${base} V${base - h + 4} Q${x} ${base - h} ${x + 4} ${base - h} H${x + bw - 4} Q${x + bw} ${base - h} ${x + bw} ${base - h + 4} V${base} Z" class="bar"/>` : ''}
-      ${sel && v ? `<text x="${x + bw / 2}" y="${base - h - 8}" text-anchor="middle" class="vl">${plataCorta(v)}</text>` : ''}
-      <text x="${x + bw / 2}" y="${H - 8}" text-anchor="middle" class="ml">${cap(mes)}</text></g>`;
+      <rect x="${x}" y="${top - 6}" width="${bw}" height="${base - top + 6}" rx="${rr}" class="bg"/>
+      ${h ? `<path d="M${x} ${base} V${base - h + r} Q${x} ${base - h} ${x + r} ${base - h} H${x + bw - r} Q${x + bw} ${base - h} ${x + bw} ${base - h + r} V${base} Z" class="bar"/>` : ''}
+      ${v ? `<text x="${x + bw / 2}" y="${base - h - 6}" text-anchor="middle" class="vl">${plataCorta(v)}</text>` : ''}
+      <text x="${x + bw / 2}" y="${H - 6}" text-anchor="middle" class="ml">${cap(mes)}</text></g>`;
   });
-  const linea = prom ? `<line x1="4" x2="${W - 4}" y1="${y(prom)}" y2="${y(prom)}" class="avg"/>` : '';
+  const linea = prom ? `<line x1="2" x2="${W - 2}" y1="${y(prom)}" y2="${y(prom)}" class="avg"/>` : '';
   const vSel = iSel >= 0 ? vals[iSel] : 0;
-  let nota = 'Todavía no hay gastos para comparar';
-  if (prom && iSel >= 0) {
+  let pill = '';
+  if (prom && iSel >= 0 && vSel) {
     const dif = Math.round((vSel - prom) / prom * 100);
-    nota = Math.abs(dif) < 3 ? 'Este mes vas en línea con tu promedio'
-      : dif > 0 ? `Este mes gastás un <b class="neg">${dif}% más</b> que tu promedio`
-                : `Este mes gastás un <b class="pos">${-dif}% menos</b> que tu promedio`;
+    pill = Math.abs(dif) < 3 ? `<span class="mpill">= promedio</span>`
+      : `<span class="mpill ${dif > 0 ? 'mas' : 'menos'}">${dif > 0 ? '▲' : '▼'} ${Math.abs(dif)}% vs. promedio</span>`;
   }
-  return `<div class="card t-mes"><h3>Últimos meses <span class="h3r">Promedio ${prom ? plataCorta(prom) : '—'}</span></h3>
-    <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gastos de los últimos 6 meses"><defs><linearGradient id="gBar" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#7dd3fc"/></linearGradient></defs>${linea}${barras}</svg>
-    <p class="cnote">${nota}</p></div>`;
+  return `<div class="card t-mes"><h3>Últimos meses ${pill}</h3>
+    <div class="mbox"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gastos de los últimos 6 meses"><defs><linearGradient id="gBar" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#7dd3fc"/></linearGradient></defs>${linea}${barras}</svg>
+    ${prom ? `<div class="mleg"><span class="mprom"><i class="lavg"></i>Promedio mensual <b>${plataCorta(prom)}</b></span></div>` : ''}</div></div>`;
 }
 /** Anillo con la distribución por categoría del mes elegido */
 function graficoCategorias(arr, tot){
