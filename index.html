@@ -450,6 +450,9 @@ svg.chart{width:100%;height:auto;display:block;overflow:visible}
 .dley .lr span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
 .dley .lr b{font-weight:700}
 .dley .lr.dim{opacity:.35}
+.catlist.cerrada{display:none}
+.vermas{display:block;width:100%;margin:2px 0 0;padding:10px;border:0;background:none;color:var(--k-hero-lbl);font:600 13.5px/1 inherit;cursor:pointer}
+@media (min-width:960px){ .catlist.cerrada{display:block} .vermas{display:none} }
 .entrada .dley .lr{animation:subir .5s .35s both}
 .cat{cursor:pointer;transition:opacity .2s}
 .cat.dim{opacity:.4}
@@ -1501,6 +1504,12 @@ function renderPanel(){
       </div>
       <div class="ratio"><div class="bar"><i style="width:${pct.toFixed(1)}%"></i></div><small>${ratioTxt}</small></div>
     </div>
+    <div class="card t-cat"><h3>Categorías
+        <span class="seg"><button class="${ui.catTipo === 'Gasto' ? 'on' : ''}" data-act="cattipo" data-t="Gasto">Gastos</button><button class="${ui.catTipo === 'Ingreso' ? 'on' : ''}" data-act="cattipo" data-t="Ingreso">Ingresos</button></span></h3>
+      ${graficoCategorias(arr, tot)}
+      ${arr.length ? `<div class="catlist${ui.catAbierta ? '' : ' cerrada'}">${catsHtml}</div>
+      <button class="vermas" data-act="catver">${ui.catAbierta ? 'Ocultar montos' : 'Ver montos por categoría'}</button>` : catsHtml}
+    </div>
     <div class="card t-disp"><h3>Disponible</h3>
       <div class="wallets">${MEDIOS.map(([m, ic]) => `<div class="wallet"><span class="ic">${ico(ic)}</span><div><small>${m}</small>
         <b class="num ${s[m] < 0 ? 'neg' : ''}" data-cuenta="${s[m] || 0}">${s[m] < 0 ? '−' : ''}${money(Math.abs(s[m] || 0))}</b></div></div>`).join('')}
@@ -1508,11 +1517,6 @@ function renderPanel(){
           <b class="num ${s.USD < 0 ? 'neg' : ''}">${s.USD < 0 ? '−' : ''}${plataUSD(Math.abs(s.USD))}</b>
           ${cotiz() ? `<small class="eq">≈ ${s.USD < 0 ? '−' : ''}${money(Math.abs(s.USD) * cotiz())}</small>` : ''}</div></div>` : ''}</div>
       ${s.hayUSD && CON_DOLARES && cotiz() ? `<p class="cnote">Dólar ${esc((DOLAR_TIPOS.find(t => t[0] === tipoDolar()) || [,''])[1].toLowerCase())}: ${money(cotiz())} · los totales en US$ se cuentan en pesos a ese valor.</p>` : ''}
-    </div>
-    <div class="card t-cat"><h3>Categorías
-        <span class="seg"><button class="${ui.catTipo === 'Gasto' ? 'on' : ''}" data-act="cattipo" data-t="Gasto">Gastos</button><button class="${ui.catTipo === 'Ingreso' ? 'on' : ''}" data-act="cattipo" data-t="Ingreso">Ingresos</button></span></h3>
-      ${graficoCategorias(arr, tot)}
-      ${catsHtml}
     </div>
     ${tarjetaAhorro()}
     ${graficoMensual(todos)}
@@ -2236,6 +2240,7 @@ document.addEventListener('click', e => {
   else if (a === 'sync') { if (modo === 'demo') abrirAjustes(); else sincronizar(true); }
   else if (a === 'mes') { ui.mes = new Date(ui.mes.getFullYear(), ui.mes.getMonth() + Number(b.dataset.d), 1); ui.catSel = null; render(); }
   else if (a === 'cattipo') { ui.catTipo = b.dataset.t; ui.catSel = null; render(); }
+  else if (a === 'catver') { ui.catAbierta = !ui.catAbierta; render(); }
   else if (a === 'catsel') { ui.catSel = ui.catSel === b.dataset.n ? null : b.dataset.n; render(); }
   else if (a === 'mesir') { ui.mes = new Date(Number(b.dataset.y), Number(b.dataset.m), 1); ui.catSel = null; render(); }
   else if (a === 'authvista') { authVista = b.dataset.v; render(); }
