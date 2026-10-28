@@ -65,6 +65,8 @@ a{color:var(--accent)}
 .brand{display:flex;align-items:center;gap:9px;flex:1;min-width:0}
 .mark{width:34px;height:34px;flex:none}
 .mark .mk-n{fill:var(--text)}
+.sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.top .mark{width:40px;height:40px}
 .brand h1{font-size:30px;line-height:1;margin:0 0 2px;font-weight:800;letter-spacing:-.045em;color:var(--text)}
 .top .pill{height:28px;padding:0 10px;font-size:11.5px;background:transparent}
 .top .icon-btn{width:34px;height:34px}
@@ -253,9 +255,9 @@ body.menu-open .menu-bg{opacity:1;pointer-events:auto}
 body.menu-open .drawer{transform:none}
 body.menu-open{overflow:hidden}
 .dhead{display:flex;align-items:center;gap:12px;padding:0 4px 4px}
-.dhead .mark{width:30px;height:30px}
+.dhead .mark{width:38px;height:38px}
 .dhead b{display:block;font-size:24px;font-weight:800;letter-spacing:-.04em;line-height:1}
-.dhead small{display:block;color:var(--muted);font-size:12.5px;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
+.dhead small{display:block;color:var(--muted);font-size:13px;margin-top:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
 .dnav{display:flex;flex-direction:column;gap:4px}
 .mi{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px;border-radius:14px}
 .mi:hover,.mi.on{background:var(--card)}
@@ -515,7 +517,7 @@ svg.i{width:20px;height:20px;flex:none;display:block}
     <div class="brand">
       <svg class="mark" viewBox="230 200 564 624" aria-hidden="true"><defs><linearGradient id="mkB" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#7dd3fc"/></linearGradient></defs>
         <path class="mk-n" d="M300 440 L400 446 L724 790 L628 782 Z"/><rect class="mk-n" x="262" y="430" width="150" height="364" rx="44"/><rect x="612" y="230" width="150" height="564" rx="44" fill="url(#mkB)"/></svg>
-      <h1>numa</h1></div>
+      <h1 class="sr">Numa</h1></div>
     <h2 class="top-title" id="topTitle"></h2>
     <div class="top-acc">
       <button class="acc i" data-act="nuevo" data-tipo="Ingreso"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Ingreso</button>
@@ -1486,7 +1488,7 @@ function pintarMenu(){
   const dr = $('#drawer');
   dr.innerHTML = `
     <div class="dhead"><svg class="mark" viewBox="230 200 564 624" aria-hidden="true"><path class="mk-n" d="M300 440 L400 446 L724 790 L628 782 Z"/><rect class="mk-n" x="262" y="430" width="150" height="364" rx="44"/><rect x="612" y="230" width="150" height="564" rx="44" fill="#3b82f6"/></svg>
-      <div><b>numa</b><small>${esc(modo === 'demo' ? 'Modo demo' : (user?.email || ''))}</small></div></div>
+      <div><small>${esc(modo === 'demo' ? 'Modo demo' : (user?.email || ''))}</small></div></div>
     <nav class="dnav">
       ${it('panel', 'inicio', 'Inicio', 'Resumen del mes')}
       ${it('movimientos', 'lista', 'Movimientos', 'Todos tus ingresos y gastos')}
