@@ -316,6 +316,7 @@ body.menu-open{overflow:hidden}
   .t-hero{grid-area:hero}.t-disp{grid-area:disp}.t-cat{grid-area:cat}.t-mes{grid-area:mes}.t-aho{grid-area:aho}
   .hero .big{font-size:46px}
   .donut svg{width:220px;height:220px}
+  .donut.dside svg{width:180px;height:180px}
   .month{justify-content:flex-start;gap:14px}
   .list .row:hover,.mi:hover{background:var(--card2)}
 }
@@ -438,6 +439,17 @@ svg.chart{width:100%;height:auto;display:block;overflow:visible}
 .donut .dc1{font-size:7.5px;font-weight:600;fill:var(--muted)}
 .donut .dc2{font-size:14px;font-weight:750;fill:var(--text);letter-spacing:-.02em}
 .donut .dc3{font-size:7.5px;font-weight:600;fill:var(--muted)}
+.donut.dside{justify-content:flex-start;align-items:center;gap:16px;margin:6px 0 12px}
+.donut.dside svg{width:140px;height:140px;flex:none}
+.donut.dside .dc2{font-size:17px}
+.dley{flex:1;min-width:0}
+.dley .lr{display:flex;align-items:center;gap:8px;width:100%;padding:4px 0;border:0;background:none;color:inherit;font-size:13.5px;text-align:left;cursor:pointer;transition:opacity .2s}
+.dley .lr[tabindex="-1"]{cursor:default}
+.dley .lr i{width:9px;height:9px;border-radius:50%;flex:none}
+.dley .lr span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+.dley .lr b{font-weight:700}
+.dley .lr.dim{opacity:.35}
+.entrada .dley .lr{animation:subir .5s .35s both}
 .cat{cursor:pointer;transition:opacity .2s}
 .cat.dim{opacity:.4}
 /* Íconos de línea */
@@ -1368,7 +1380,7 @@ function graficoMensual(todos){
 function graficoCategorias(arr, tot){
   if (!arr.length) return '';
   const segs = arr.map(([n, v]) => ({n, v, color: catIco(n, ui.catTipo).color}));
-  const r = 46, C = 2 * Math.PI * r, gap = segs.length > 1 ? 1.6 : 0;
+  const r = 46, C = 2 * Math.PI * r, gap = segs.length > 1 ? 2.5 : 0;
   let off = 0, arcs = '';
   segs.forEach(sg => {
     const len = Math.max(0.01, sg.v / tot * C - gap);
@@ -1381,9 +1393,15 @@ function graficoCategorias(arr, tot){
   const centro = sel
     ? `<text x="60" y="55" class="dc1">${esc(sel.n.length > 13 ? sel.n.slice(0, 12) + '…' : sel.n)}</text><text x="60" y="71" class="dc2">${plataCorta(sel.v)}</text><text x="60" y="83" class="dc3">${Math.round(sel.v / tot * 100)}%</text>`
     : `<text x="60" y="66" class="dc2" data-cuenta="${tot}" data-corto="1">${plataCorta(tot)}</text>`;
-  return `<div class="donut"><svg viewBox="0 0 120 120" role="img" aria-label="Distribución por categoría"><defs><mask id="dBarre" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120">
+  // Al costado: las 5 principales y el resto juntas en "Otras"
+  const MAXL = 5, resto = segs.slice(MAXL), vResto = resto.reduce((a, b) => a + b.v, 0);
+  const fila = (n, v, color, act) => `<button type="button" class="lr${act && ui.catSel && ui.catSel !== n ? ' dim' : ''}" ${act ? `data-act="catsel" data-n="${esc(n)}"` : 'tabindex="-1"'}>
+      <i style="background:${color}"></i><span>${esc(n)}</span><b>${Math.round(v / tot * 100)}%</b></button>`;
+  const ley = segs.slice(0, MAXL).map(sg => fila(sg.n, sg.v, sg.color, true)).join('')
+    + (vResto ? fila(`Otras (${resto.length})`, vResto, '#64748b', false) : '');
+  return `<div class="donut dside"><svg viewBox="0 0 120 120" role="img" aria-label="Distribución por categoría"><defs><mask id="dBarre" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120">
       <circle cx="60" cy="60" r="${r}" fill="none" stroke="#fff" stroke-width="18" stroke-dasharray="${C.toFixed(2)} ${C.toFixed(2)}" class="barre"/></mask></defs>
-    <g transform="rotate(-90 60 60)"><circle cx="60" cy="60" r="${r}" class="track"/><g mask="url(#dBarre)">${arcs}</g></g>${centro}</svg></div>`;
+    <g transform="rotate(-90 60 60)"><circle cx="60" cy="60" r="${r}" class="track"/><g mask="url(#dBarre)">${arcs}</g></g>${centro}</svg><div class="dley">${ley}</div></div>`;
 }
 
 
