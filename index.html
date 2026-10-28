@@ -13,6 +13,18 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="apple-touch-startup-image" href="splash/s-1320x2868.png" media="(device-width:440px) and (device-height:956px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="splash/s-1206x2622.png" media="(device-width:402px) and (device-height:874px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="splash/s-1290x2796.png" media="(device-width:430px) and (device-height:932px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="splash/s-1179x2556.png" media="(device-width:393px) and (device-height:852px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="splash/s-1284x2778.png" media="(device-width:428px) and (device-height:926px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="splash/s-1170x2532.png" media="(device-width:390px) and (device-height:844px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="splash/s-1125x2436.png" media="(device-width:375px) and (device-height:812px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="splash/s-1242x2688.png" media="(device-width:414px) and (device-height:896px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="splash/s-828x1792.png" media="(device-width:414px) and (device-height:896px) and (-webkit-device-pixel-ratio:2) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="splash/s-1080x2340.png" media="(device-width:360px) and (device-height:780px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="splash/s-750x1334.png" media="(device-width:375px) and (device-height:667px) and (-webkit-device-pixel-ratio:2) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="splash/s-1242x2208.png" media="(device-width:414px) and (device-height:736px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
 <script>/* Ícono de la pantalla de inicio: claro u oscuro según el modo del celular (o el elegido en Ajustes) al momento de agregar la app */
 try{var tm=localStorage.getItem('numa_tema'),cl=tm==='light'||(tm!=='dark'&&window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches);
 if(cl)document.querySelector('link[rel="apple-touch-icon"]').setAttribute('href','apple-touch-icon-claro.png')}catch(e){}</script>
@@ -616,8 +628,15 @@ body:has(.auth){background:var(--k-auth)}
 #main .chart .mb.sel .ml{fill:var(--k-hero-lbl);font-weight:700}
 
 </style>
+<style>#splash{position:fixed;inset:0;z-index:99999;background:#000;display:flex;align-items:center;justify-content:center;transition:opacity .35s ease}
+#splash img{width:24vw;max-width:110px;height:auto;animation:splIn .5s ease both}
+#splash.fuera{opacity:0;pointer-events:none}
+@keyframes splIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}</style>
 </head>
 <body>
+<div id="splash" aria-hidden="true"><img src="splash/marca.png" alt=""></div>
+<script>(function(){var t0=Date.now(),hecho=false;function fin(){if(hecho)return;hecho=true;var el=document.getElementById('splash');if(!el)return;el.classList.add('fuera');setTimeout(function(){el.remove()},400)}
+window.addEventListener('load',function(){setTimeout(fin,Math.max(0,700-(Date.now()-t0)))});setTimeout(fin,2500)})();</script>
 <div id="app">
   <header class="top" id="top" hidden>
     <div class="brand">
